@@ -66,7 +66,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveSteerGains m_steerCharacterization = new SwerveRequest.SysIdSwerveSteerGains();
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
 
-    private SwerveRequest.ApplyRobotSpeeds autoDrive = new SwerveRequest.ApplyRobotSpeeds();
+    private SwerveRequest.ApplyRobotSpeeds autoDrive = new SwerveRequest.ApplyRobotSpeeds().withDriveRequestType(com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType.Velocity);
 
     private SwerveDrivePoseEstimator m_poseEstimator;
 
@@ -227,7 +227,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     public void buildPoseEstimator(){
         m_poseEstimator=new SwerveDrivePoseEstimator(getKinematics(),
-                        new Rotation2d(this.getPigeon2().getYaw().getValue()),
+                        Rotation2d.fromDegrees(this.getPigeon2().getYaw().getValue()),
                         this.getState().ModulePositions,getPose2d(), Constants.kPoseEstimatorStandardDeviations, 
                         Constants.kVisionStandardDeviations);
     }
@@ -354,12 +354,18 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric().withDeadband((TunerConstants.kMaxSpeed*0.1))
             .withRotationalDeadband((TunerConstants.kMaxAngularSpeed*0.1));
 
-        ////System.out.println("VELOCITY X SPEED: "+(-driveController.getRawAxis(translationAxis)*TunerConstants.kMaxSpeed)*m_gasPedalMult);
-            
-        return this.applyRequest(() -> drive.withVelocityX((-driveController.getRawAxis(translationAxis)*TunerConstants.kMaxSpeed)*m_currentGasPedalDriveMult)
-            .withVelocityY((-driveController.getRawAxis(strafeAxis)*TunerConstants.kMaxSpeed)*m_currentGasPedalDriveMult)
-            .withRotationalRate((-driveController.getRawAxis(rotationAxis)*TunerConstants.kMaxAngularSpeed)*m_currentGasPedalRotMult)
-        );
+        return this.applyRequest(() -> {
+            double rawX = -driveController.getRawAxis(translationAxis);
+            double rawY = -driveController.getRawAxis(strafeAxis);
+            double mag = Math.hypot(rawX, rawY);
+            if (mag > 1.0) {
+                rawX /= mag;
+                rawY /= mag;
+            }
+            return drive.withVelocityX(rawX * TunerConstants.kMaxSpeed * m_currentGasPedalDriveMult)
+                .withVelocityY(rawY * TunerConstants.kMaxSpeed * m_currentGasPedalDriveMult)
+                .withRotationalRate((-driveController.getRawAxis(rotationAxis)*TunerConstants.kMaxAngularSpeed)*m_currentGasPedalRotMult);
+        });
     }
 
     public void setGasPedalMult(double driveMult,double rotMult){
