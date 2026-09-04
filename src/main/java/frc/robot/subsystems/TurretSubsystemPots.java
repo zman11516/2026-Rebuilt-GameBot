@@ -66,7 +66,7 @@ public class TurretSubsystemPots extends SubsystemBase {
   private double kUpperLimit=5.5;
   private final double kGearReduction=8;  //80t to 10tooth
   private final double kMotorRotationsToAngle=7.87499;//7.80;
-  private final double kDegreesPerRotation=0;
+  private final double kDegreesPerRotation=kMotorRotationsToAngle;
   private DutyCycleOut m_TurretDutyCycleOut = new DutyCycleOut(0.0);
   private MotionMagicVoltage mmRequest = new MotionMagicVoltage(0);
   
@@ -215,7 +215,12 @@ public double getTargetMotorPosition(double targetangle){
  return returnValue;
 }
 public boolean isOnTargetAngle(double angle){
-  return true;
+  double diff = Math.abs(getCurrentAngle() - angle);
+  // Handle wraparound distance (e.g. 359 and 1)
+  if (diff > 180) {
+      diff = 360 - diff;
+  }
+  return diff < 1.5; // 1.5 degree deadband
 }
 
 public double getTurretPOTS(){

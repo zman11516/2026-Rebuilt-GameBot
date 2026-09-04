@@ -96,7 +96,6 @@ public class TurretTrackCommand extends Command {
       }
       if(Math.abs(llx)<kLimelightDeadband){
         //System.out.println("In Limelight Deadband");
-        m_turretState=TurretStates.END;
         m_turret.stopTurret();
       } else {
         if (llx<0){
