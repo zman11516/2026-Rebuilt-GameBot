@@ -183,6 +183,17 @@ export function crossesBox(ax, ay, bx, by, b) {
 }
 
 /**
+ * The footprints feed.crossing names, grown by the ball radius r like the profile intervals, so a
+ * line whose ball would clip one counts as crossing it.
+ */
+export function crossingBoxes(feed, r) {
+  const names = new Set(feed.crossing?.obstacles ?? []);
+  return obstacleBoxes(feed)
+    .filter((o) => names.has(o.name))
+    .map((o) => ({ ...o, x: [o.x[0] - r, o.x[1] + r], y: [o.y[0] - r, o.y[1] + r] }));
+}
+
+/**
  * Worst-case obstacle profile for passing from distance d to a target.
  * Launch points are sampled on the circle of radius d around the target at several bearings
  * inside the allowed launch region; the trajectory in the shot plane is the same for every
@@ -196,8 +207,7 @@ export function feedProfile(feed, target, d, r) {
   const boxes = obstacleBoxes(feed);
   const reg = feed.launchRegion;
   const need = r + feed.obstacleClearance;
-  const crossNames = new Set(feed.crossing?.obstacles ?? []);
-  const crossBoxes = boxes.filter((o) => crossNames.has(o.name));
+  const crossBoxes = crossingBoxes(feed, r);
   const bearings = [];
   const intervals = [];
   const n = feed.bearingSamples;

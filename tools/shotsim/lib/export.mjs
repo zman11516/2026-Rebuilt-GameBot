@@ -2,7 +2,7 @@
 // frc.robot.subsystems.shooter.shotmap.ShotMap.
 
 import { basisTerms, fitPoly } from './fit.mjs';
-import { obstacleBoxes } from './targets.mjs';
+import { crossingBoxes } from './targets.mjs';
 
 export const SCHEMA = 'shotsim5454/1';
 export const OUTPUTS = [
@@ -153,13 +153,15 @@ export function buildShotMap(config, mech, grid, configText = JSON.stringify(con
   };
   if (config.kind !== 'hub' && config.feed.crossing) {
     // The robot picks between a "feed" and a "net feed" map by checking whether the line from the
-    // turret to the target crosses these footprints (blue-alliance field coordinates).
-    const names = new Set(config.feed.crossing.obstacles);
+    // turret to the target crosses these footprints (blue-alliance field coordinates, grown by the
+    // ball radius exactly as the generator classified its launch bearings).
     map.crossing = {
       mode: config.feed.crossing.mode,
-      boxes: obstacleBoxes(config.feed)
-        .filter((o) => names.has(o.name))
-        .map((o) => ({ name: o.name, x: o.x, y: o.y })),
+      boxes: crossingBoxes(config.feed, config.physics.ballDiameter / 2).map((o) => ({
+        name: o.name,
+        x: o.x.map((v) => round(v)),
+        y: o.y.map((v) => round(v)),
+      })),
     };
   }
   return map;

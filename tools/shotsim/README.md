@@ -86,9 +86,11 @@ The ball centre must land (z = 0.075 m) within 0.75 m of the target. The obstacl
 on where the robot stands, so for each distance the generator samples launch points on the circle of radius d
 around the target (inside the launch region, outside obstacles) and keeps the union of every obstacle's
 footprint (grown by the ball radius) along the line: the ball centre must be at least `zTop + r + clearance`
-there. Like 4414 there are two map families: `feed` covers lines that miss the hub body and net, `netfeed`
-covers lines that cross the net (the ball has to clear 3.06 m). The robot picks one by testing the turret-to-
-target segment against the `crossing.boxes` in the map.
+there. A launch point whose line meets an obstacle within `hugDistance` (the trench mouth) and that has no shot
+of its own is left out rather than invalidating the whole distance. Like 4414 there are two map families: `feed`
+covers lines that miss the hub body and net, `netfeed` covers lines that cross the net (the ball has to clear
+3.06 m). The crossing rule uses the same ball-radius-grown footprints as the intervals, and the robot picks a
+map by testing the turret-to-target segment against those grown `crossing.boxes` in the map.
 
 ### Shot selection (maximin)
 

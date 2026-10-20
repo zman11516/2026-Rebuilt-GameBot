@@ -4,6 +4,7 @@
 //   node tools/shotsim/cli.mjs generate             all maps -> src/main/deploy/shotmaps/*.json
 //                                                   + src/main/deploy/shooter_calibration.json
 //   node tools/shotsim/cli.mjs generate --only hub  one config (hub | feed | netfeed)
+//   node tools/shotsim/cli.mjs generate --out DIR   maps and calibration -> DIR (deploy untouched)
 //   node tools/shotsim/cli.mjs calibrate [--tof] [--write] [--data tools/shotsim/data/tuned_hub.csv]
 //   node tools/shotsim/cli.mjs point --config hub --d 3 --vr 0
 //   node tools/shotsim/cli.mjs fixtures             Java parity fixtures -> src/test/resources/shotmap/
@@ -82,7 +83,8 @@ function generate(opt) {
   }
   if (!opt.only || opt.only === 'hub') {
     const hub = hubLoaded ?? loadConfig('hub.json');
-    const file = path.join(DEPLOY, 'shooter_calibration.json');
+    // --out keeps the whole run out of the deploy folder, calibration included
+    const file = path.join(opt.out ? outDir : DEPLOY, 'shooter_calibration.json');
     writeJson(file, robotCalibration(hub.mech, hub.config));
     console.log(`calibration -> ${path.relative(ROOT, file)}`);
   }
@@ -109,8 +111,10 @@ function runCalibrate(opt) {
     const m = readJson(file);
     m.hood.theta0Deg = Math.round(res.theta0Deg * 100) / 100;
     m.flywheel.exitSpeedPerRotorRps = Math.round(res.exitSpeedPerRotorRps * 10000) / 10000;
+    // The fit is the whole m/s per rps ratio (it ran with exitSpeedScale 1), so a trim must not stay on top
+    m.flywheel.exitSpeedScale = 1;
     fs.writeFileSync(file, JSON.stringify(m, null, 2) + '\n');
-    console.log(`updated ${path.relative(ROOT, file)}; re-run generate`);
+    console.log(`updated ${path.relative(ROOT, file)} (exitSpeedScale reset to 1); re-run generate`);
   }
 }
 

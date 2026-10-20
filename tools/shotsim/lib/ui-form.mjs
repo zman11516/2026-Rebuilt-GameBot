@@ -61,6 +61,7 @@ export const FIELD_GROUPS = [
       num('feed.apexMax', 'apex max', 'm'),
       num('feed.bearingSamples', 'bearing samples'),
       num('feed.bearingSpanDeg', 'bearing span', 'deg'),
+      opt('feed.hugDistance', 'hug distance (blank = off)', 'm'),
     ],
   },
   {

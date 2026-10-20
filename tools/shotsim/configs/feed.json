@@ -23,6 +23,7 @@
     "launchRegion": { "x": [5.3, 16.3], "y": [0.4, 7.67] },
     "bearingSamples": 15,
     "bearingSpanDeg": 85,
+    "hugDistance": 0.3,
     "crossing": { "mode": "avoid", "obstacles": ["hubBody", "hubNet"] },
     "obstacles": [
       { "name": "trenchLow", "type": "box", "x": [4.0287, 5.2225], "y": [0.0, 1.6675], "zTop": 1.0224 },
@@ -34,7 +35,7 @@
       { "name": "tower", "type": "box", "x": [0.0, 1.143], "y": [3.1202, 4.3712], "zTop": 1.988 },
       { "name": "allianceWall", "type": "plane", "x": 0.0, "y": [0.0, 8.069], "z": [0.0, 2.0015] }
     ],
-    "_source": "Landing: ball centre at floor contact within 0.75 m of the target (keeps 1.2 m from the guardrail, Tyler sim rule). Obstacles (blue frame, welded field): Game Manual 5.x + field drawings via Tyler Handel's rebuilt-sim-2026 and 6328 FieldConstants. Trench top 1.0224 m: VERIFY (frc-fire-control uses 1.346 m pillars). crossing.avoid = this map only covers passes whose line misses the hub and its net; netfeed.json covers the rest."
+    "_source": "Landing: ball centre at floor contact within 0.75 m of the target (keeps 1.2 m from the guardrail, Tyler sim rule). Obstacles (blue frame, welded field): Game Manual 5.x + field drawings via Tyler Handel's rebuilt-sim-2026 and 6328 FieldConstants. Trench top 1.0224 m: VERIFY (frc-fire-control uses 1.346 m pillars). crossing.avoid = this map only covers passes whose line misses the hub and its net; netfeed.json covers the rest. hugDistance: a launch point whose line meets an obstacle this close (turret at the trench mouth) and that has no shot of its own is left out instead of invalidating its whole distance (the map's shot does not work from that spot). netfeed.json leaves it at 0, so a robot parked under the net never fires into it."
   },
   "selection": {
     "mode": "maximin",

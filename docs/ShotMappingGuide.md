@@ -122,7 +122,7 @@ Each key is published once with its default the first time a SOTM command starts
 |---|---|---|
 | `SOTM/UseShotMap` | true if the maps loaded | A/B switch: shot map (true) or the old lookup-table lead solution (false). Read every loop. |
 | `SOTM/MapMode` | `AUTO` | `POLY` (fitted polynomials), `GRID` (interpolate the raw simulated grid), or anything else for the map's recommendation (GRID for every current map). Read every loop. POLY margins are shifted down to stay conservative. On the current hub map that leaves almost no hood tolerance, so the robot rarely feeds in POLY mode. |
-| `SOTM/HoodOffsetDeg` | 0 | Knob 1: degrees added to every launch angle the hood produces. |
+| `SOTM/HoodOffsetDeg` | 0 | Knob 1: degrees added to every launch angle the hood produces. A negative value also lowers the hood's top angle; a shot that needs more than that top angle plus its angle margin reports `HOOD_ABOVE_MAX` and is not fed. |
 | `SOTM/ExitSpeedScale` | `flywheel.exitSpeedScale` in the calibration file (1) | Knob 2: measured exit speed / modelled exit speed. Above 1 means the ball leaves faster than modelled, so the robot commands less rps. |
 | `SOTM/LatencySec` | `phaseDelay + mechLatency` (0.05 s) | How far ahead the robot pose is predicted. Read every loop. |
 
@@ -131,7 +131,7 @@ Logs are under `Shooter/SOTM/Map/*` (d, vr, vt, elevation, exit speed, hood rota
 ### Calibration procedure
 4414 tunes only two knobs, and so do we. Keep kicker and hopper speeds the same as in a match while calibrating, because feed speed changes the shot.
 1. **Measure the geometry once.** Confirm the hood angle at CANcoder 0 and at 0.6 rotations (inclinometer on the last surface the ball touches, or 240 fps side video). Also confirm the release height and the turret offset in `configs/mechanism.json`.
-2. **Fit the knobs to tuned shots.** Shot-map the hub at 6 to 10 distances (sections 2 and 3). Put the rows in `tools/shotsim/data/tuned_hub.csv`, then run `calibrate`. It fits `hood.theta0Deg` (the launch angle at CANcoder 0) and `flywheel.exitSpeedPerRotorRps`. Check the per-row misses, then run `calibrate --write` and `generate`, and deploy.
+2. **Fit the knobs to tuned shots.** Shot-map the hub at 6 to 10 distances (sections 2 and 3). Put the rows in `tools/shotsim/data/tuned_hub.csv`, then run `calibrate`. It fits `hood.theta0Deg` (the launch angle at CANcoder 0) and `flywheel.exitSpeedPerRotorRps`. Check the per-row misses, then run `calibrate --write` (it also resets `exitSpeedScale` to 1, since the fit is the whole ratio) and `generate`, and deploy.
 3. **Static check.** Shoot about 10 balls each at 2, 3, 4 and 5 m with `SOTM/UseShotMap` on, standing still.
    * Everything short or everything long: change `SOTM/ExitSpeedScale`. Start with 0.01 to 0.02 steps; going long means the ball is faster than modelled, so raise it.
    * Error that changes with distance: change `SOTM/HoodOffsetDeg`.

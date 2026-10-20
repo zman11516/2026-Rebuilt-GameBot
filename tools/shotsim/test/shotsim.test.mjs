@@ -12,7 +12,7 @@ import { selectMaximin } from '../lib/select.mjs';
 import { basisTerms, fitPoly, evalPoly } from '../lib/fit.mjs';
 import { compensate, solve, poseExp } from '../lib/sotm.mjs';
 import { evalMap } from '../lib/mapeval.mjs';
-import { buildGrid } from '../lib/grid.mjs';
+import { buildGrid, makeContext, solvePoint } from '../lib/grid.mjs';
 import { buildShotMap, SCHEMA, OUTPUTS } from '../lib/export.mjs';
 import { calibrate, parseTunedCsv, predictRows } from '../lib/calibrate.mjs';
 import { stripDocs, expandConfig } from '../lib/config.mjs';
@@ -138,6 +138,46 @@ test('moving shot: launch vector + turret velocity has no sideways component', (
     const side = -(r.launchVector[0] + fvx) * uy + (r.launchVector[1] + fvy) * ux;
     near(side, 0, 1e-9, 'field-frame tangential component');
   }
+});
+
+test('hood above its top angle is flagged only once the miss passes the map margin', () => {
+  const map = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/test/resources/shotmap/fixture_hub.json'), 'utf8'));
+  const state = { x: 2.0, y: 4.04, heading: 0, vx: 0, vy: 0, omega: 0 };
+  const opts = { latency: 0, turretOffset: mech.turretOffset, mode: 'GRID' };
+  const r = solve(state, [4.62, 4.04], map, mech, opts);
+  assert.ok(r.valid);
+  // A lower theta0 stands in for the robot's negative hood trim (SOTM/HoodOffsetDeg).
+  const room = angleRange(mech).max - r.elevationDeg + r.map.angleMarginLow;
+  const trimmed = (dt) => ({ ...mech, hood: { ...mech.hood, theta0Deg: mech.hood.theta0Deg + dt } });
+  assert.ok(solve(state, [4.62, 4.04], map, trimmed(-room + 0.05), opts).valid);
+  const low = solve(state, [4.62, 4.04], map, trimmed(-room - 0.05), opts);
+  assert.deepEqual(low.reasons, ['HOOD_ABOVE_MAX']);
+  assert.equal(low.hoodRot, mech.hood.rotMin);
+});
+
+test('non-finite pose or speeds never produce a valid shot', () => {
+  const map = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/test/resources/shotmap/fixture_hub.json'), 'utf8'));
+  const opts = { latency: 0.05, turretOffset: mech.turretOffset, mode: 'GRID' };
+  for (const state of [
+    { x: 2.0, y: 4.04, heading: 0, vx: NaN, vy: 0, omega: 0 },
+    { x: NaN, y: 4.04, heading: 0, vx: 0, vy: 0, omega: 0 },
+  ]) {
+    const r = solve(state, [4.62, 4.04], map, mech, opts);
+    assert.ok(!r.valid && r.reasons.includes('NON_FINITE_INPUT'));
+  }
+});
+
+test('feed map: one launch point that cannot pass does not wipe out its distance', () => {
+  const [c] = expandConfig(read('configs/feed.json'));
+  const ctx = makeContext(c, mech);
+  const at = (d) => solvePoint(ctx, c, mech, d, 0, feedProfile(c.feed, c.target, d, ctx.aero.r));
+  // 5.75 m: the -60.7 deg launch point's ball would clip the hub corner, so the feed map leaves it out.
+  const p = at(5.75);
+  assert.ok(p.valid && !p.droppedBearings, `5.75 m: ${p.reason}`);
+  // 3 m: the +12.1 deg launch point is 0.14 m from the trench it would have to clear.
+  const q = at(3);
+  assert.ok(q.valid, `3 m: ${q.reason}`);
+  assert.deepEqual(q.droppedBearings.map(Math.round), [12]);
 });
 
 test('feed profiles: avoid/require split passes over the hub net', () => {

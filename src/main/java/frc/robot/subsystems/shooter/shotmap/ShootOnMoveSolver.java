@@ -88,9 +88,19 @@ public final class ShootOnMoveSolver {
     double turretYawDeg = wrapDeg(fieldYawDeg - heading.getRadians() / DEG - lateralDeg);
 
     List<String> reasons = new ArrayList<>();
+    // A NaN pose/speed (or standing on the target) would otherwise slip through every comparison.
+    boolean finite =
+        Double.isFinite(d)
+            && Double.isFinite(vr)
+            && Double.isFinite(vt)
+            && Double.isFinite(comp.elevationDeg())
+            && Double.isFinite(comp.speed());
+    if (!finite || d < 1e-6) reasons.add("NON_FINITE_INPUT");
     if (!m.valid()) reasons.add(m.reason());
     if (Math.abs(vt) > m.vtMax()) reasons.add("TANGENTIAL_TOO_FAST");
     if (comp.elevationDeg() < cal.minAngleDeg() - 1e-6) reasons.add("HOOD_BELOW_MIN");
+    // Above the top angle the hood clamps, which still scores while the miss is inside the map's margin
+    if (comp.elevationDeg() > cal.maxAngleDeg() + m.angleMarginLow() + 1e-6) reasons.add("HOOD_ABOVE_MAX");
     double rps = cal.rpsForExitSpeed(comp.speed());
     if (rps > cal.rotorRpsMax() + 1e-6) reasons.add("FLYWHEEL_TOO_FAST");
 

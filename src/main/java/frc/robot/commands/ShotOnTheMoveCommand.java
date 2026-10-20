@@ -213,6 +213,8 @@ double turretSourceAngle=targetShot.turretAngleDegrees;
   double targetPos=m_turret.getTargetMotorPosition(angle);
   SmartDashboard.putNumber("Turret Util Target Pos",targetPos); 
   boolean ready = isShotReady(targetShot, targetPos);
+  // Lookup-table shots keep the old behavior: gated only on WAIT -> SHOOT, then fed every loop
+  boolean feed = ready || targetShot.sotm == null;
   publishDebug(targetShot, staticShot, robotRelativeSpeeds, fieldRelativeSpeeds, turretVelX, turretVelY, angle, targetPos, target);
   m_turret.moveMotor(targetPos); 
   
@@ -238,8 +240,8 @@ switch(m_state){
         
         break;
     case SHOOT:
-          // Readiness is re-checked every loop: hold the fuel back while not ready, but stay in SHOOT
-          feedFuel(ready, targetspeed, true);
+          // Shot-map shots re-check readiness every loop: hold the fuel back while not ready, but stay in SHOOT
+          feedFuel(feed, targetspeed, true);
           m_shooter.HoodSetPos(hoodPos);
          //STAY IN SHOOT
           if(checkNoFuelorFuelTimeLimit()){
@@ -261,7 +263,7 @@ switch(m_state){
        break; 
     case EMPTYHOPPER:
          m_shooter.HoodSetPos(hoodPos);
-         feedFuel(ready, targetspeed, false); // this state runs the intake itself
+         feedFuel(feed, targetspeed, false); // this state runs the intake itself
     
     /*  //System.out.println("Flip Count"+ m_flipCount);
         m_flipCount=m_flipCount+1;
@@ -341,7 +343,7 @@ switch(m_state){
       break;
     case SHOOTMORE:
                   m_shooter.HoodSetPos(hoodPos);
-                  feedFuel(ready, targetspeed, false);
+                  feedFuel(feed, targetspeed, false);
    
         //STAY IN THE LOOP FOREVER UNTIL USER STOPS
      break;
@@ -429,8 +431,8 @@ switch(m_state){
   /**
    * True when a ball fed now should score; logs every gate. Shot-map shots allow half of the map's
    * scoring margins on the flywheel and hood, and atan(0.2 m / d) on the turret. Lookup-table shots
-   * keep the old gates (atTargetSpeed + turret deadband). Either way the turret target must be
-   * inside the turret's soft limits, since moveMotor ignores anything else.
+   * keep the old gates (atTargetSpeed + turret deadband), which only hold WAIT -> SHOOT. Either way
+   * the turret target must be inside the turret's soft limits, since moveMotor ignores anything else.
    */
   private boolean isShotReady(ShotSolution shot, double targetMotorPosition){
     boolean reachable = m_turret.isMotorTargetReachable(targetMotorPosition);

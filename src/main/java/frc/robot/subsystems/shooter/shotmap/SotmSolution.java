@@ -8,7 +8,8 @@ import java.util.List;
  * Result of {@link ShootOnMoveSolver#solve}.
  *
  * @param valid true when nothing in {@code reasons} blocks the shot
- * @param reasons map reason plus "TANGENTIAL_TOO_FAST", "HOOD_BELOW_MIN", "FLYWHEEL_TOO_FAST"
+ * @param reasons map reason plus "TANGENTIAL_TOO_FAST", "HOOD_BELOW_MIN", "HOOD_ABOVE_MAX",
+ *     "FLYWHEEL_TOO_FAST"
  * @param distance turret axis to target, 2D (m)
  * @param radialVelocity turret velocity toward the target (m/s, + closing)
  * @param tangentialVelocity turret velocity across the line of sight (m/s, + to the left)

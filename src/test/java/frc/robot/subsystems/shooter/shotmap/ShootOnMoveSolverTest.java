@@ -89,6 +89,49 @@ class ShootOnMoveSolverTest {
   }
 
   @Test
+  void flagsShotsTheTrimmedHoodCannotReach() throws Exception {
+    ShotMap map = ShotMapFixtures.hubMap();
+    ShooterCalibration cal =
+        ShooterCalibration.fromJson(ShotMapFixtures.expected().get("mechanism"));
+    Pose2d pose = new Pose2d(2.0, 4.04, new Rotation2d());
+    Translation2d target = new Translation2d(4.62, 4.04);
+    ChassisSpeeds still = new ChassisSpeeds();
+    SotmSolution r = ShootOnMoveSolver.solve(pose, still, target, map, ShotMap.Mode.GRID, cal, 0);
+    assertTrue(r.valid());
+    // The hood's top angle may sit below the request by up to the map's lower angle margin
+    double room = cal.maxAngleDeg() - r.elevationDeg() + r.map().angleMarginLow();
+    cal.setHoodOffsetDeg(-room + 0.05);
+    assertTrue(ShootOnMoveSolver.solve(pose, still, target, map, ShotMap.Mode.GRID, cal, 0).valid());
+    cal.setHoodOffsetDeg(-room - 0.05);
+    SotmSolution low = ShootOnMoveSolver.solve(pose, still, target, map, ShotMap.Mode.GRID, cal, 0);
+    assertEquals(List.of("HOOD_ABOVE_MAX"), low.reasons());
+    assertEquals(0, low.hoodRot(), 1e-12);
+  }
+
+  @Test
+  void rejectsNonFiniteInputs() throws Exception {
+    ShotMap map = ShotMapFixtures.hubMap();
+    ShooterCalibration cal =
+        ShooterCalibration.fromJson(ShotMapFixtures.expected().get("mechanism"));
+    Translation2d target = new Translation2d(4.62, 4.04);
+    Pose2d pose = new Pose2d(2.0, 4.04, new Rotation2d());
+    SotmSolution nanSpeed =
+        ShootOnMoveSolver.solve(
+            pose, new ChassisSpeeds(Double.NaN, 0, 0), target, map, ShotMap.Mode.GRID, cal, 0.05);
+    assertTrue(!nanSpeed.valid() && nanSpeed.reasons().contains("NON_FINITE_INPUT"));
+    SotmSolution nanPose =
+        ShootOnMoveSolver.solve(
+            new Pose2d(Double.NaN, 4.04, new Rotation2d()),
+            new ChassisSpeeds(),
+            target,
+            map,
+            ShotMap.Mode.GRID,
+            cal,
+            0);
+    assertTrue(!nanPose.valid() && nanPose.reasons().contains("NON_FINITE_INPUT"));
+  }
+
+  @Test
   void wrapDegMatchesJs() {
     assertEquals(180, ShootOnMoveSolver.wrapDeg(-180), 0);
     assertEquals(180, ShootOnMoveSolver.wrapDeg(180), 0);

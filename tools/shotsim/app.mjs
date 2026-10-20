@@ -4,7 +4,7 @@
 import { MAP_CONFIGS, expandConfig, robotCalibration, stripDocs } from './lib/config.mjs';
 import { axis, makeContext, solvePoint } from './lib/grid.mjs';
 import { integrate } from './lib/physics.mjs';
-import { launchState, feedProfile, obstacleBoxes, crossesBox } from './lib/targets.mjs';
+import { launchState, feedProfile, obstacleBoxes, crossesBox, crossingBoxes } from './lib/targets.mjs';
 import { probabilityOfScore } from './lib/select.mjs';
 import { evalPoly } from './lib/fit.mjs';
 import { OUTPUTS, fitGrid, buildShotMap } from './lib/export.mjs';
@@ -335,7 +335,9 @@ function runSingle() {
     samples: 256,
   });
   const bearings = profile
-    ? `<div><b>Launch bearings:</b> ${profile.bearings.length}/${config.feed.bearingSamples} in the worst-case profile</div>`
+    ? `<div><b>Launch bearings:</b> ${profile.bearings.length}/${config.feed.bearingSamples} in the worst-case profile` +
+      (p.droppedBearings ? ` (${p.droppedBearings.length} hugging an obstacle with no shot left out)` : '') +
+      '</div>'
     : '';
   out.innerHTML = `
     <div><b class="c-chosen">Optimal:</b> ${fx(p.angleDeg, 1)}° @ ${fx(p.speed)} m/s</div>
@@ -667,7 +669,7 @@ async function runMove() {
     return;
   }
   const mech = state.mech;
-  const hoodMin = angleRange(mech).min;
+  const hood = angleRange(mech);
   const cols = ['POLY', 'GRID'].map((mode) => {
     const m = evalMap(map, d, vr, mode);
     const H = m.speed * Math.cos(m.angleDeg * DEG);
@@ -678,7 +680,8 @@ async function runMove() {
     const reasons = [];
     if (!m.valid) reasons.push(m.reason);
     if (Math.abs(vt) > m.vtMax) reasons.push('TANGENTIAL_TOO_FAST');
-    if (c.elevationDeg < hoodMin - 1e-6) reasons.push('HOOD_BELOW_MIN');
+    if (c.elevationDeg < hood.min - 1e-6) reasons.push('HOOD_BELOW_MIN');
+    if (c.elevationDeg > hood.max + m.angleMarginLow + 1e-6) reasons.push('HOOD_ABOVE_MAX');
     if (rps > mech.flywheel.rotorRpsMax + 1e-6) reasons.push('FLYWHEEL_TOO_FAST');
     return { mode, m, H, V, c, rps, hoodRot: hoodRotForAngle(mech, c.elevationDeg), reasons };
   });
@@ -700,7 +703,10 @@ async function runMove() {
     row('flywheel', (k) => `${fx(k.rps, 2)} rotor rps`, 'out'),
     row('map valid', (k) => `${ok(k.m.valid)} ${k.m.valid ? '' : k.m.reason}`),
     row('|vt| ≤ vt max', (k) => `${ok(Math.abs(vt) <= k.m.vtMax)} (${fx(k.m.vtMax)} m/s)`),
-    row('elevation ≥ hood min', (k) => `${ok(k.c.elevationDeg >= hoodMin - 1e-6)} (${fx(hoodMin, 1)}°)`),
+    row('elevation ≥ hood min', (k) => `${ok(k.c.elevationDeg >= hood.min - 1e-6)} (${fx(hood.min, 1)}°)`),
+    row('elevation ≤ hood max + margin', (k) =>
+      `${ok(k.c.elevationDeg <= hood.max + k.m.angleMarginLow + 1e-6)} (${fx(hood.max, 1)}° + ${fx(k.m.angleMarginLow, 1)}°)`,
+    ),
     row('rps ≤ max', (k) => `${ok(k.rps <= mech.flywheel.rotorRpsMax + 1e-6)} (${mech.flywheel.rotorRpsMax})`),
     row('shot valid', (k) =>
       k.reasons.length ? `<span class="c-low">${k.reasons.join(', ')}</span>` : '<span class="c-high">VALID</span>',
@@ -793,8 +799,7 @@ function feedMaps(side, x, y) {
   return ['feed', 'netfeed']
     .map((kind) => state.configs[`${kind}_${side}`])
     .filter((c) => {
-      const names = new Set(c.feed.crossing?.obstacles ?? []);
-      const boxes = obstacleBoxes(c.feed).filter((o) => names.has(o.name));
+      const boxes = crossingBoxes(c.feed, c.physics.ballDiameter / 2);
       if (boxes.length === 0) return true;
       const crosses = boxes.some((o) => crossesBox(x, y, c.target[0], c.target[1], o));
       return c.feed.crossing.mode === 'avoid' ? !crosses : crosses;

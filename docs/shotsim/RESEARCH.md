@@ -146,7 +146,7 @@ Each row gives the value our configs use and its source. Section 3.6 lists the n
 | Distance grid | Hub 1.0–6.5 m @ 0.1; feed 2–12 m @ 0.25 | Turret axis to target, 2D. 6.5 m covers our far corner (6.14 m). | Ours |
 | Radial grid | ±2 m/s (hub @ 0.25, feed @ 0.5) | SOTM drive is throttled to 25% (1.5 m/s) | Re-grid if the throttle is raised |
 | Tangential limit | \|vt\| ≤ 1.5 m/s; hub bearing rate ≤ 0.4 rad/s | 1.5 = SOTM throttle. The bearing-rate rule is from 6328's DriveCommands; passing has no limit, as at 6328. | Loosen after testing |
-| Latency | 0.03 s phase delay + 0.02 s mechanism | 6328 / 1540 (30 ms) and 5962 (20 ms). Do not use hand-timed TOF tables as flight time: they run long against the model (6328 +0.18 s, 6940 +0.26–0.29 s, ours up to about +0.1 s). | **Measure the feed-to-exit time on video** |
+| Latency | 0.03 s phase delay + 0.02 s mechanism | 6328 / 1540 (30 ms) and 5962 (20 ms). Do not use hand-timed TOF tables as flight time: 6328's and 6940's run long against the model (+0.18 s, +0.26–0.29 s), while ours (`data/tuned_hub.csv` with θ0 72.4°) runs 0.08–0.28 s short, and the team flags that column as unreliable. | **Measure the feed-to-exit time on video** |
 
 ### 3.5 Our mechanism (`tools/shotsim/configs/mechanism.json`)
 

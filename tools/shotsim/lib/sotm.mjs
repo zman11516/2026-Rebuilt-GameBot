@@ -93,10 +93,15 @@ export function solve(state, target, map, mech, opts) {
   const turretYawDeg = wrapDeg(fieldYawDeg - p.heading / DEG - lateralDeg);
 
   const reasons = [];
+  // A NaN pose/speed (or standing on the target) would otherwise slip through every comparison.
+  const finite = [d, vr, vt, comp.elevationDeg, comp.speed].every(Number.isFinite);
+  if (!finite || d < 1e-6) reasons.push('NON_FINITE_INPUT');
   if (!m.valid) reasons.push(m.reason);
   if (Math.abs(vt) > m.vtMax) reasons.push('TANGENTIAL_TOO_FAST');
   const range = angleRange(mech);
   if (comp.elevationDeg < range.min - 1e-6) reasons.push('HOOD_BELOW_MIN');
+  // Above the top angle the hood clamps, which still scores while the miss is inside the map's margin.
+  if (comp.elevationDeg > range.max + m.angleMarginLow + 1e-6) reasons.push('HOOD_ABOVE_MAX');
   const rps = rpsForExitSpeed(mech, comp.speed);
   if (rps > mech.flywheel.rotorRpsMax + 1e-6) reasons.push('FLYWHEEL_TOO_FAST');
 

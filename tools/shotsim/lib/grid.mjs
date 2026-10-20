@@ -66,7 +66,24 @@ export function solvePoint(ctx, config, mech, d, vr, profile) {
     speedBias: config.selection.speedBias,
     fixedAngle: ctx.fixedAngle ?? undefined,
   });
-  if (!best) return { d, vr, valid: false, reason: 'NO_SCORING_SHOT', bands };
+  if (!best) {
+    // A launch point hugging an obstacle it cannot clear (e.g. at the trench mouth) must not wipe
+    // out the whole distance: drop those bearings if they cannot score alone and solve the rest.
+    // A bearing blocked by an obstacle further along its line still counts against the distance.
+    const only = (bs) => ({ bearings: bs, intervals: profile.intervals.filter((i) => bs.includes(i.bearingDeg)) });
+    const hug = config.feed?.hugDistance ?? 0;
+    const dropped =
+      config.kind === 'hub' || profile.bearings.length < 2
+        ? []
+        : profile.bearings.filter(
+            (b) => only([b]).intervals.some((i) => i.x1 < hug) && !solvePoint(ctx, config, mech, d, vr, only([b])).valid,
+          );
+    if (dropped.length > 0 && dropped.length < profile.bearings.length) {
+      const p = solvePoint(ctx, config, mech, d, vr, only(profile.bearings.filter((b) => !dropped.includes(b))));
+      return { ...p, droppedBearings: dropped };
+    }
+    return { d, vr, valid: false, reason: 'NO_SCORING_SHOT', bands };
+  }
   const r = shot(best.angle, best.speed);
   const vtMax = tangentialLimit(config, mech, ctx.range, ctx.speed.max, d, best.angle, best.speed, r.tof);
   return {
