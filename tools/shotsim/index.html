@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>5454 Shot Simulator</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%234c8dff'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="style.css" />
+    <!-- Plotly is the only external file; without it the charts are replaced by a note and the numbers still work. -->
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"
+      integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7"
+      crossorigin="anonymous"
+    ></script>
+    <script type="module" src="app.mjs"></script>
+  </head>
+  <body>
+    <header>
+      <h1>5454 Shot Simulator <small>TideShot-style shot maps for the 2026 REBUILT robot</small></h1>
+      <span class="sweep-status hint"></span>
+    </header>
+    <div id="banner"></div>
+    <div class="layout">
+      <aside>
+        <label class="target">Target <select id="target"></select></label>
+        <label class="check"><input type="checkbox" id="practiceApex" /> practice ceiling (apex max 3.5 m)</label>
+        <button id="resetConfig">Reload configs from files</button>
+        <p class="hint">Edits apply to the selected target; the mechanism is shared. Files are not changed.</p>
+        <div id="form"></div>
+      </aside>
+      <main>
+        <nav id="tabs">
+          <button data-tab="single">Single Sweep</button>
+          <button data-tab="sweep">Full Sweep</button>
+          <button data-tab="fit">Fit</button>
+          <button data-tab="move">Moving Shot</button>
+          <button data-tab="cal">Calibrate</button>
+          <button data-tab="feed">Feed</button>
+          <button data-tab="export">Export</button>
+        </nav>
+
+        <section id="tab-single" class="tab">
+          <div class="controls">
+            <label>d <input id="s-d" type="number" step="0.1" value="3" /> m</label>
+            <label>vr <input id="s-vr" type="number" step="0.25" value="0" /> m/s</label>
+            <button id="s-run" class="primary">Simulate</button>
+            <span class="hint">d = turret axis to target (2D); vr + = closing on the target</span>
+          </div>
+          <div class="split">
+            <div id="s-traj" class="plot big"></div>
+            <div class="side">
+              <div class="tiles">
+                <div class="tile"><span>Valid angles</span><b id="s-angles">–</b></div>
+                <div class="tile"><span>Shots simulated</span><b id="s-shots">–</b></div>
+                <div class="tile"><span>Solve time</span><b id="s-time">–</b></div>
+              </div>
+              <div id="s-region" class="plot"></div>
+              <div id="s-readout" class="readout"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-sweep" class="tab" hidden>
+          <div class="controls">
+            <button id="g-run" class="primary">Run full sweep</button>
+            <button id="g-cancel" disabled>Cancel</button>
+            <span id="g-info" class="hint"></span>
+          </div>
+          <div class="progress"><div id="g-bar"></div></div>
+          <p id="g-summary" class="hint"></p>
+          <div id="g-maps" class="heatmaps"></div>
+        </section>
+
+        <section id="tab-fit" class="tab" hidden>
+          <div class="controls">
+            <label>
+              polynomial degree
+              <select id="f-degree">
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+              </select>
+            </label>
+            <span id="f-mode"></span>
+          </div>
+          <div class="split">
+            <div id="f-surface" class="plot big"></div>
+            <div class="side">
+              <table id="f-table"></table>
+              <table id="f-degrees"></table>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-move" class="tab" hidden>
+          <div class="controls">
+            <label>map <select id="m-source"></select></label>
+            <label>d <input id="m-d" type="number" step="0.1" value="3" /> m</label>
+            <label>vr <input id="m-vr" type="number" step="0.25" value="0.5" /> m/s</label>
+            <label>vt <input id="m-vt" type="number" step="0.25" value="1" /> m/s</label>
+            <button id="m-run" class="primary">Solve</button>
+            <span class="hint">vt + = robot moving left of the line of sight</span>
+          </div>
+          <div class="split">
+            <table id="m-table" class="wide"></table>
+            <div class="side">
+              <svg id="m-vectors" viewBox="0 0 320 320"></svg>
+              <p class="hint">
+                Shooter vector L = (H, −vt, V) in the hub frame; adding the robot velocity (vr, vt, 0) gives the
+                simulated radial shot (H + vr, 0, V). Conversions use the mechanism panel (= shooter_calibration.json).
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-cal" class="tab" hidden>
+          <div class="split">
+            <div>
+              <textarea id="c-csv" rows="14" spellcheck="false"></textarea>
+              <div class="controls">
+                <label class="check"><input type="checkbox" id="c-tof" /> also fit time of flight</label>
+                <button id="c-run" class="primary">Fit</button>
+                <button id="c-apply" disabled>Apply to mechanism fields</button>
+              </div>
+              <p class="hint">
+                Rows d,rps,hoodRot[,tof] of hand-tuned hub shots that scored. Fits θ at hood 0 and exit m/s per rotor
+                rps.
+              </p>
+            </div>
+            <div class="side">
+              <div id="c-result" class="readout"></div>
+              <div id="c-profile" class="plot"></div>
+            </div>
+          </div>
+          <table id="c-table" class="wide"></table>
+        </section>
+
+        <section id="tab-feed" class="tab" hidden>
+          <div class="controls">
+            <label>
+              target
+              <select id="p-side">
+                <option>left</option>
+                <option>right</option>
+              </select>
+            </label>
+            <label>vr <input id="p-vr" type="number" step="0.25" value="0" /> m/s</label>
+            <span class="hint">click or drag on the field to move the robot (blue alliance frame)</span>
+          </div>
+          <svg id="p-field"></svg>
+          <div id="p-readout" class="readout"></div>
+        </section>
+
+        <section id="tab-export" class="tab" hidden>
+          <p class="note">
+            The committed maps in <code>src/main/deploy/shotmaps/</code> and <code>shooter_calibration.json</code> are
+            produced by <code>node tools/shotsim/cli.mjs generate</code>. Downloads here are for experiments with edited
+            configs.
+          </p>
+          <div class="controls">
+            <button id="x-map" class="primary" disabled>Download map JSON</button>
+            <button id="x-cal">Download shooter_calibration.json</button>
+          </div>
+          <div id="x-summary" class="readout"></div>
+          <h3>shooter_calibration.json (from the mechanism panel)</h3>
+          <pre id="x-preview"></pre>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

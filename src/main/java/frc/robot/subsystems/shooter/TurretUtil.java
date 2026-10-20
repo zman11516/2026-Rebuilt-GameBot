@@ -1,14 +1,22 @@
 package frc.robot.subsystems.shooter;
 
+import com.pathplanner.lib.util.FlippingUtil;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants;
 import frc.robot.Constants.TurretStates;
 import frc.robot.subsystems.shooter.FieldConstants;
+import frc.robot.subsystems.shooter.shotmap.ShootOnMoveSolver;
+import frc.robot.subsystems.shooter.shotmap.ShooterCalibration;
+import frc.robot.subsystems.shooter.shotmap.ShotMap;
+import frc.robot.subsystems.shooter.shotmap.ShotMaps;
+import frc.robot.subsystems.shooter.shotmap.SotmSolution;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 /**
  * Utility class for turret targeting calculations.
@@ -25,7 +33,8 @@ public class TurretUtil {
         HUB,
         LEFT_PASS,
         RIGHT_PASS,
-        NOTARGET
+        NOTARGET,
+        PASS        // Nearest of LEFT_PASS / RIGHT_PASS, resolved every loop
     }
 
     // =========================
@@ -36,13 +45,16 @@ public class TurretUtil {
     public static class ShotSolution {
         public final double distanceMeters;       // Turret-to-target distance (m)
         public final double turretAngleDegrees;   // Required turret angle relative to robot heading (°)
-        public final double trajectoryAngleDegrees; // Pivot / hood angle from lookup table (°)
+        public final double trajectoryAngleDegrees; // Hood command (CANcoder rotations, despite the name)
         public final double shooterSpeedRPS;      // Flywheel speed from lookup table (RPS)
         public final double timeOfFlightSeconds;  // Ball time-of-flight from lookup table (s)
         public final boolean isValid;             // True if shot is within range & turret limits
         public final double predictedTurretX;      // Field X used for lead compensation (m)
         public final double predictedTurretY;      // Field Y used for lead compensation (m)
         public final double leadDistanceMeters;    // How far the turret moves during flight (m)
+        public final SotmSolution sotm;            // Shot-map solve behind this shot, null on the lookup-table path
+        public final String shotMapName;           // Shot map used ("hub", "feed_left", ...), null on the lookup-table path
+        public final ShotMap.Mode shotMapMode;     // POLY or GRID, null on the lookup-table path
 
         public ShotSolution(double distanceMeters, double turretAngleDegrees,
                             double trajectoryAngleDegrees, double shooterSpeedRPS,
@@ -56,6 +68,17 @@ public class TurretUtil {
                             double timeOfFlightSeconds, boolean isValid,
                             double predictedTurretX, double predictedTurretY,
                             double leadDistanceMeters) {
+            this(distanceMeters, turretAngleDegrees, trajectoryAngleDegrees, shooterSpeedRPS,
+                    timeOfFlightSeconds, isValid, predictedTurretX, predictedTurretY,
+                    leadDistanceMeters, null, null, null);
+        }
+
+        public ShotSolution(double distanceMeters, double turretAngleDegrees,
+                            double trajectoryAngleDegrees, double shooterSpeedRPS,
+                            double timeOfFlightSeconds, boolean isValid,
+                            double predictedTurretX, double predictedTurretY,
+                            double leadDistanceMeters, SotmSolution sotm,
+                            String shotMapName, ShotMap.Mode shotMapMode) {
             this.distanceMeters = distanceMeters;
             this.turretAngleDegrees = turretAngleDegrees;
             this.trajectoryAngleDegrees = trajectoryAngleDegrees;
@@ -65,6 +88,9 @@ public class TurretUtil {
             this.predictedTurretX = predictedTurretX;
             this.predictedTurretY = predictedTurretY;
             this.leadDistanceMeters = leadDistanceMeters;
+            this.sotm = sotm;
+            this.shotMapName = shotMapName;
+            this.shotMapMode = shotMapMode;
         }
     }
 
@@ -317,6 +343,69 @@ public class TurretUtil {
     }
 
     // =========================
+    // SHOOT ON THE MOVE (SHOT MAP)
+    // =========================
+
+    /**
+     * Computes a "shoot on the move" solution from the offline shot maps (tools/shotsim, Team 4414's
+     * method). The map was simulated over distance and RADIAL velocity; {@link ShootOnMoveSolver}
+     * cancels the TANGENTIAL velocity with 3D vectors.
+     *
+     * <p>Pass targets use the "feed" map, or the "net feed" map when the line from the turret to
+     * the target crosses the hub net. Falls back to {@link #computeLeadShotSolution} when the maps
+     * did not load.
+     *
+     * <p>Dashboard overrides: "SOTM/MapMode" ("POLY" or "GRID", anything else = the map's
+     * recommendation) and "SOTM/LatencySec" (default: calibration phase delay + mechanism latency).
+     *
+     * @param robotPose           Current robot field pose
+     * @param robotRelativeSpeeds Robot-relative chassis speeds
+     * @param target              Which target to shoot at
+     * @return A {@link ShotSolution}; trajectoryAngleDegrees carries the hood command in CANcoder
+     *         rotations, like the lookup tables
+     */
+    public static ShotSolution computeShotMapSolution(Pose2d robotPose,
+                                                      ChassisSpeeds robotRelativeSpeeds,
+                                                      TargetType target) {
+        if (target == TargetType.PASS) {
+            target = getNearestPassTargetType(robotPose);
+        }
+        if (target == TargetType.NOTARGET) {
+            ShotSolution s = computeShotSolution(robotPose, target);
+            return new ShotSolution(s.distanceMeters, s.turretAngleDegrees, s.trajectoryAngleDegrees,
+                    s.shooterSpeedRPS, s.timeOfFlightSeconds, false);
+        }
+
+        ShotMaps maps = ShotMaps.get();
+        Translation2d goal = getTargetPose(target).getTranslation();
+        ShotMap map = maps.available() ? getShotMap(maps, robotPose, target, goal) : null;
+        if (map == null) {
+            // Old path so the robot still shoots without the deploy files
+            Translation2d turretVel = getFieldRelativeTurretVelocity(robotPose, robotRelativeSpeeds);
+            return computeLeadShotSolution(robotPose, turretVel.getX(), turretVel.getY(), target);
+        }
+
+        ShooterCalibration cal = maps.calibration();
+        ShotMap.Mode mode = getShotMapMode(map);
+        double latency = SmartDashboard.getNumber("SOTM/LatencySec", cal.phaseDelay() + cal.mechLatency());
+        SotmSolution sotm = ShootOnMoveSolver.solve(robotPose, robotRelativeSpeeds, goal, map, mode, cal, latency);
+
+        return new ShotSolution(
+                sotm.distance(),
+                sotm.turretYawDeg(),
+                sotm.hoodRot(),
+                sotm.flywheelRps(),
+                sotm.tof(),
+                sotm.valid(),
+                sotm.turretPosition().getX(),
+                sotm.turretPosition().getY(),
+                Math.hypot(sotm.radialVelocity(), sotm.tangentialVelocity()) * sotm.tof(),
+                sotm,
+                map.name(),
+                mode);
+    }
+
+    // =========================
     // VALIDATION
     // =========================
 
@@ -336,6 +425,40 @@ public class TurretUtil {
     // =========================
     // INTERNAL HELPERS
     // =========================
+
+    /**
+     * Shot map for the target, or null if it did not load. Pass targets use the net feed map when
+     * the turret-to-target line crosses the hub net (the net feed map's crossing boxes).
+     */
+    private static ShotMap getShotMap(ShotMaps maps, Pose2d robotPose, TargetType target, Translation2d goal) {
+        if (target == TargetType.HUB) {
+            return maps.hub();
+        }
+        boolean left = target == TargetType.LEFT_PASS;
+        ShotMap netMap = maps.feed(left, true) != null ? maps.feed(left, true) : maps.feed(!left, true);
+        // Crossing boxes are in the blue frame; the rotational flip is its own inverse
+        Translation2d fromBlue = toBlueFrame(getTurretPose(robotPose).getTranslation());
+        Translation2d toBlue = toBlueFrame(goal);
+        boolean overNet = netMap != null && netMap.lineCrossesBoxes(fromBlue, toBlue);
+
+        ShotMap map = maps.feed(left, overNet);
+        if (map == null) map = maps.feed(!left, overNet); // mirror image of the same feed
+        if (map == null) map = maps.feed(left, !overNet);
+        return map;
+    }
+
+    /** "SOTM/MapMode" from the dashboard if it is POLY or GRID, otherwise the map's recommendation. */
+    private static ShotMap.Mode getShotMapMode(ShotMap map) {
+        String mode = SmartDashboard.getString("SOTM/MapMode", "");
+        if (mode.equals("POLY")) return ShotMap.Mode.POLY;
+        if (mode.equals("GRID")) return ShotMap.Mode.GRID;
+        return map.recommendedMode();
+    }
+
+    /** Undoes the red-alliance flip that {@link FieldConstants} applies to field positions. */
+    private static Translation2d toBlueFrame(Translation2d fieldPosition) {
+        return FieldConstants.isRedAlliance() ? FlippingUtil.flipFieldPosition(fieldPosition) : fieldPosition;
+    }
 
     /** Selects the correct lookup table and returns interpolated parameters. */
     private static HubLookUpTable.ShootingParameters getTableParams(double distanceMeters, TargetType target) {

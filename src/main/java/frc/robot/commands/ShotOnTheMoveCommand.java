@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -25,6 +26,10 @@ import frc.robot.subsystems.shooter.TurretUtil;
 import frc.robot.subsystems.shooter.HubLookUpTable.ShootingParameters;
 import frc.robot.subsystems.shooter.TurretUtil.ShotSolution;
 import frc.robot.subsystems.shooter.TurretUtil.TargetType;
+import frc.robot.subsystems.shooter.shotmap.ShooterCalibration;
+import frc.robot.subsystems.shooter.shotmap.ShotMapOutput;
+import frc.robot.subsystems.shooter.shotmap.ShotMaps;
+import frc.robot.subsystems.shooter.shotmap.SotmSolution;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.utilities.Limelight;
 /** An example command that uses an example subsystem. */
@@ -66,8 +71,18 @@ public class ShotOnTheMoveCommand extends Command {
   private double kTurretPosDeadband=0.25;
   private boolean m_finished=false;
   private boolean m_stopWhenNoFuel=true;
+  private TargetType m_targetType=TargetType.HUB; // HUB, or PASS = nearest pass target each loop
+  private final double kTurretAimToleranceMeters=0.2; // sideways miss at the target the turret gate allows
+  private final double kHubEntryHeight=1.8288; // hub opening, 72 in (tools/shotsim/configs/hub.json)
+  private final double kLaunchLineSeconds=0.1; // logged launch vector line = launch velocity x this
   public ShotOnTheMoveCommand(CommandSwerveDrivetrain swerve,NewShooterSubsystem shooter, HopperSubsystem hopper, IntakeSubsystem intake, 
                           TurretSubsystemPots turret,Limelight limelight, double timeLimit, boolean emptyHopper) {
+    this(swerve, shooter, hopper, intake, turret, limelight, timeLimit, emptyHopper, TargetType.HUB);
+  }
+
+  /** @param target HUB, or PASS for the nearest pass target each loop */
+  public ShotOnTheMoveCommand(CommandSwerveDrivetrain swerve,NewShooterSubsystem shooter, HopperSubsystem hopper, IntakeSubsystem intake, 
+                          TurretSubsystemPots turret,Limelight limelight, double timeLimit, boolean emptyHopper, TargetType target) {
     m_hopper=hopper;
     m_shooter=shooter;
     m_intake=intake;
@@ -79,6 +94,7 @@ public class ShotOnTheMoveCommand extends Command {
     overrideDistanceFlag=false;
     
     m_emptyHopper=emptyHopper;
+    m_targetType=target;
     m_state=shooterStates.SPINUP;
     addRequirements(m_hopper);
     addRequirements(m_shooter);
@@ -87,6 +103,12 @@ public class ShotOnTheMoveCommand extends Command {
 
   public ShotOnTheMoveCommand(TurretSubsystemPots turret,CommandSwerveDrivetrain swerve,NewShooterSubsystem shooter, HopperSubsystem hopper, IntakeSubsystem intake, 
                             double timeLimit) {
+    this(turret, swerve, shooter, hopper, intake, timeLimit, TargetType.HUB);
+  }
+
+  /** @param target HUB, or PASS for the nearest pass target each loop */
+  public ShotOnTheMoveCommand(TurretSubsystemPots turret,CommandSwerveDrivetrain swerve,NewShooterSubsystem shooter, HopperSubsystem hopper, IntakeSubsystem intake, 
+                            double timeLimit, TargetType target) {
     m_hopper=hopper;
     m_shooter=shooter;
     m_intake=intake;
@@ -94,6 +116,7 @@ public class ShotOnTheMoveCommand extends Command {
     m_turret=turret;
     m_timeLimit=timeLimit;
     m_stopWhenNoFuel=false;
+    m_targetType=target;
     m_state=shooterStates.SPINUP;
     addRequirements(m_hopper);
     addRequirements(m_shooter);
@@ -129,6 +152,28 @@ public class ShotOnTheMoveCommand extends Command {
     if (m_swerve != null) {
       m_swerve.setGasPedalMult(Constants.DriveConstants.kSOTMDriveMultiplier, Constants.DriveConstants.kSOTMTurnMultiplier);
     }
+
+    // Shot map A/B switch and 4414's two live trims; defaults are published once so they can be edited
+    ShooterCalibration cal = ShotMaps.get().calibration();
+    if (!SmartDashboard.containsKey("SOTM/UseShotMap")) {
+      SmartDashboard.putBoolean("SOTM/UseShotMap", ShotMaps.get().available());
+    }
+    if (cal != null) {
+      if (!SmartDashboard.containsKey("SOTM/MapMode")) {
+        SmartDashboard.putString("SOTM/MapMode", "AUTO");
+      }
+      if (!SmartDashboard.containsKey("SOTM/LatencySec")) {
+        SmartDashboard.putNumber("SOTM/LatencySec", cal.phaseDelay() + cal.mechLatency());
+      }
+      if (!SmartDashboard.containsKey("SOTM/HoodOffsetDeg")) {
+        SmartDashboard.putNumber("SOTM/HoodOffsetDeg", 0);
+      }
+      if (!SmartDashboard.containsKey("SOTM/ExitSpeedScale")) {
+        SmartDashboard.putNumber("SOTM/ExitSpeedScale", cal.exitSpeedScale());
+      }
+      cal.setHoodOffsetDeg(SmartDashboard.getNumber("SOTM/HoodOffsetDeg", 0));
+      cal.setExitSpeedScale(SmartDashboard.getNumber("SOTM/ExitSpeedScale", cal.exitSpeedScale()));
+    }
   }
 
 
@@ -141,19 +186,24 @@ public class ShotOnTheMoveCommand extends Command {
 var pose = m_swerve.getPose2d();
 ChassisSpeeds robotRelativeSpeeds = m_swerve.getChassisSpeeds();
 ChassisSpeeds fieldRelativeSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(robotRelativeSpeeds, pose.getRotation());
+TargetType target = (m_targetType == TargetType.PASS) ? TurretUtil.getNearestPassTargetType(pose) : m_targetType;
 
 Translation2d turretFieldVelocity = TurretUtil.getFieldRelativeTurretVelocity(pose, robotRelativeSpeeds);
 double turretVelX = turretFieldVelocity.getX();
 double turretVelY = turretFieldVelocity.getY();
-ShotSolution targetShot = TurretUtil.computeLeadShotSolution(pose,turretVelX,turretVelY,TurretUtil.TargetType.HUB); 
-ShotSolution staticShot = TurretUtil.computeShotSolution(pose, TurretUtil.TargetType.HUB);
+// A/B: shot map (4414 method) or the old lookup-table lead solution
+boolean useShotMap = SmartDashboard.getBoolean("SOTM/UseShotMap", ShotMaps.get().available());
+ShotSolution targetShot = useShotMap
+    ? TurretUtil.computeShotMapSolution(pose, robotRelativeSpeeds, target)
+    : TurretUtil.computeLeadShotSolution(pose,turretVelX,turretVelY,target); 
+ShotSolution staticShot = TurretUtil.computeShotSolution(pose, target);
 
 double targetspeed=targetShot.shooterSpeedRPS;
 double hoodPos=targetShot.trajectoryAngleDegrees;
 double turretSourceAngle=targetShot.turretAngleDegrees;
 
 //REFERENCE ONLY - DO NOT USE TARGETING
- double StaticTurretAngleTarget=TurretUtil.get5454TurretAngle(pose,TurretUtil.TargetType.HUB);
+ double StaticTurretAngleTarget=TurretUtil.get5454TurretAngle(pose,target);
   //always adjust the angle
    double angle=TurretUtil.get5454TurretAngleFromAngle(turretSourceAngle);
          
@@ -162,7 +212,8 @@ double turretSourceAngle=targetShot.turretAngleDegrees;
   SmartDashboard.putNumber("Turret Util Target Angle",angle);
   double targetPos=m_turret.getTargetMotorPosition(angle);
   SmartDashboard.putNumber("Turret Util Target Pos",targetPos); 
-  publishDebug(targetShot, staticShot, robotRelativeSpeeds, fieldRelativeSpeeds, turretVelX, turretVelY, angle, targetPos);
+  boolean ready = isShotReady(targetShot, targetPos);
+  publishDebug(targetShot, staticShot, robotRelativeSpeeds, fieldRelativeSpeeds, turretVelX, turretVelY, angle, targetPos, target);
   m_turret.moveMotor(targetPos); 
   
 switch(m_state){
@@ -179,7 +230,7 @@ switch(m_state){
               m_shooter.runNewShooter(targetspeed, 0);
    
    
-        if(m_shooter.atTargetSpeed(targetspeed) && checkTurretPos(targetPos)){
+        if(ready){
             startShootTime=Timer.getFPGATimestamp();
             m_state=shooterStates.SHOOT;
             stateStartTime=Timer.getFPGATimestamp();
@@ -187,17 +238,9 @@ switch(m_state){
         
         break;
     case SHOOT:
-          double currentKickerSpeed = (m_turret != null && m_turret.isWrappingAround()) ? 0 : Constants.ShooterConstants.KickerSpeed;
-          m_shooter.runKicker(currentKickerSpeed);
-
-          m_shooter.runNewShooter(targetspeed,
-                            currentKickerSpeed);
+          // Readiness is re-checked every loop: hold the fuel back while not ready, but stay in SHOOT
+          feedFuel(ready, targetspeed, true);
           m_shooter.HoodSetPos(hoodPos);
-          double currentHopperSpeed = (m_turret != null && m_turret.isWrappingAround()) ? Constants.HopperConstants.agitateLowSpeed : Constants.HopperConstants.agitateSpeed;
-          m_hopper.agitate(currentHopperSpeed);
-          if (m_intake.getCurrentCommand() == null) {
-            m_intake.runIntake(Constants.IntakeConstants.highSpeed);
-          }
          //STAY IN SHOOT
           if(checkNoFuelorFuelTimeLimit()){
             m_state=shooterStates.NOFUEL;
@@ -218,6 +261,7 @@ switch(m_state){
        break; 
     case EMPTYHOPPER:
          m_shooter.HoodSetPos(hoodPos);
+         feedFuel(ready, targetspeed, false); // this state runs the intake itself
     
     /*  //System.out.println("Flip Count"+ m_flipCount);
         m_flipCount=m_flipCount+1;
@@ -297,6 +341,7 @@ switch(m_state){
       break;
     case SHOOTMORE:
                   m_shooter.HoodSetPos(hoodPos);
+                  feedFuel(ready, targetspeed, false);
    
         //STAY IN THE LOOP FOREVER UNTIL USER STOPS
      break;
@@ -358,9 +403,80 @@ switch(m_state){
     return returnValue;
   }
 
+  /**
+   * Runs the kicker, hopper and (when nothing else owns it) the intake while the shot is ready and
+   * stops them while it is not. The flywheel keeps tracking the target speed either way.
+   */
+  private void feedFuel(boolean ready, double targetspeed, boolean runIntake){
+    boolean wrapping = m_turret != null && m_turret.isWrappingAround();
+    double currentKickerSpeed = (ready && !wrapping) ? Constants.ShooterConstants.KickerSpeed : 0;
+    m_shooter.runKicker(currentKickerSpeed);
+    m_shooter.runNewShooter(targetspeed, currentKickerSpeed);
+    if (ready) {
+      m_hopper.agitate(wrapping ? Constants.HopperConstants.agitateLowSpeed : Constants.HopperConstants.agitateSpeed);
+    } else {
+      m_hopper.stopAgitate();
+    }
+    if (runIntake && m_intake.getCurrentCommand() == null) {
+      if (ready) {
+        m_intake.runIntake(Constants.IntakeConstants.highSpeed);
+      } else {
+        m_intake.stopIntake();
+      }
+    }
+  }
+
+  /**
+   * True when a ball fed now should score; logs every gate. Shot-map shots allow half of the map's
+   * scoring margins on the flywheel and hood, and atan(0.2 m / d) on the turret. Lookup-table shots
+   * keep the old gates (atTargetSpeed + turret deadband). Either way the turret target must be
+   * inside the turret's soft limits, since moveMotor ignores anything else.
+   */
+  private boolean isShotReady(ShotSolution shot, double targetMotorPosition){
+    boolean reachable = m_turret.isMotorTargetReachable(targetMotorPosition);
+    boolean valid;
+    boolean flywheelReady;
+    boolean hoodReady;
+    boolean turretReady;
+    SotmSolution sotm = shot.sotm;
+    ShooterCalibration cal = ShotMaps.get().calibration();
+    if (sotm != null && cal != null) {
+      ShotMapOutput map = sotm.map();
+      double flywheelTolRps = Math.min(Constants.ShooterConstants.shooterVelocityLowDeadband,
+          cal.rpsForExitSpeed(0.5 * Math.min(map.speedMarginLow(), map.speedMarginHigh())));
+      double hoodTolRot = 0.5 * Math.min(map.angleMarginLow(), map.angleMarginHigh()) / Math.abs(cal.degPerRot());
+      double turretTolRot = Math.toDegrees(Math.atan(kTurretAimToleranceMeters / sotm.distance()))
+          / TurretSubsystemPots.kMotorRotationsToAngle;
+      // Same as atTargetSpeed / checkTurretPos: the sim does not model these mechanisms closely
+      boolean sim = edu.wpi.first.wpilibj.RobotBase.isSimulation();
+      valid = shot.isValid;
+      flywheelReady = sim || Math.abs(m_shooter.getShooterSpeed() - sotm.flywheelRps()) <= flywheelTolRps;
+      hoodReady = sim || Math.abs(m_shooter.getHoodPos() - sotm.hoodRot()) <= hoodTolRot;
+      turretReady = sim || Math.abs(m_turret.getCurrentPosition() - targetMotorPosition) <= turretTolRot;
+      Logger.recordOutput("Shooter/SOTM/Ready/FlywheelTolRps", flywheelTolRps);
+      Logger.recordOutput("Shooter/SOTM/Ready/HoodTolRot", hoodTolRot);
+      Logger.recordOutput("Shooter/SOTM/Ready/TurretTolRot", turretTolRot);
+    } else {
+      valid = true; // the lookup-table path never gated on isValid
+      flywheelReady = m_shooter.atTargetSpeed(shot.shooterSpeedRPS);
+      hoodReady = true;
+      turretReady = checkTurretPos(targetMotorPosition);
+    }
+    boolean ready = valid && reachable && flywheelReady && hoodReady && turretReady;
+
+    Logger.recordOutput("Shooter/SOTM/Ready/Valid", valid);
+    Logger.recordOutput("Shooter/SOTM/Ready/TurretReachable", reachable);
+    Logger.recordOutput("Shooter/SOTM/Ready/Flywheel", flywheelReady);
+    Logger.recordOutput("Shooter/SOTM/Ready/Hood", hoodReady);
+    Logger.recordOutput("Shooter/SOTM/Ready/Turret", turretReady);
+    Logger.recordOutput("Shooter/SOTM/Ready/All", ready);
+    SmartDashboard.putBoolean("SOTM/Ready", ready);
+    return ready;
+  }
+
   private void publishDebug(ShotSolution leadShot, ShotSolution staticShot, ChassisSpeeds robotRelativeSpeeds,
                             ChassisSpeeds fieldRelativeSpeeds, double turretVelX, double turretVelY, double turretAngle5454,
-                            double targetMotorPosition){
+                            double targetMotorPosition, TargetType target){
     double leadAngleDelta = leadShot.turretAngleDegrees - staticShot.turretAngleDegrees;
 
     SmartDashboard.putNumber("SOTM/DistanceMeters",leadShot.distanceMeters);
@@ -412,21 +528,62 @@ switch(m_state){
     Logger.recordOutput("Shooter/SOTM/FieldRelVyMps",fieldRelativeSpeeds.vyMetersPerSecond);
     Logger.recordOutput("Shooter/SOTM/TurretFieldVelXMps",turretVelX);
     Logger.recordOutput("Shooter/SOTM/TurretFieldVelYMps",turretVelY);
+    Logger.recordOutput("Shooter/SOTM/Target",target.toString());
+    Logger.recordOutput("Shooter/SOTM/UsingShotMap",leadShot.sotm != null);
 
+    // Shot-map solve (4414 method): map lookup at (d, vr), then vt cancelled with 3D vectors
+    SotmSolution sotm = leadShot.sotm;
+    if (sotm != null) {
+      ShotMapOutput map = sotm.map();
+      String reasons = String.join(",", sotm.reasons());
+      SmartDashboard.putString("SOTM/MapName",leadShot.shotMapName);
+      SmartDashboard.putString("SOTM/Reasons",reasons);
+      Logger.recordOutput("Shooter/SOTM/Map/Name",leadShot.shotMapName);
+      Logger.recordOutput("Shooter/SOTM/Map/Mode",leadShot.shotMapMode.toString());
+      Logger.recordOutput("Shooter/SOTM/Map/Distance",sotm.distance());
+      Logger.recordOutput("Shooter/SOTM/Map/RadialVelocity",sotm.radialVelocity());
+      Logger.recordOutput("Shooter/SOTM/Map/TangentialVelocity",sotm.tangentialVelocity());
+      Logger.recordOutput("Shooter/SOTM/Map/ElevationDeg",sotm.elevationDeg());
+      Logger.recordOutput("Shooter/SOTM/Map/ExitSpeed",sotm.exitSpeed());
+      Logger.recordOutput("Shooter/SOTM/Map/HoodRot",sotm.hoodRot());
+      Logger.recordOutput("Shooter/SOTM/Map/FlywheelRps",sotm.flywheelRps());
+      Logger.recordOutput("Shooter/SOTM/Map/Tof",sotm.tof());
+      Logger.recordOutput("Shooter/SOTM/Map/AngleMarginLow",map.angleMarginLow());
+      Logger.recordOutput("Shooter/SOTM/Map/AngleMarginHigh",map.angleMarginHigh());
+      Logger.recordOutput("Shooter/SOTM/Map/SpeedMarginLow",map.speedMarginLow());
+      Logger.recordOutput("Shooter/SOTM/Map/SpeedMarginHigh",map.speedMarginHigh());
+      Logger.recordOutput("Shooter/SOTM/Map/VtMax",map.vtMax());
+      Logger.recordOutput("Shooter/SOTM/Map/Valid",sotm.valid());
+      Logger.recordOutput("Shooter/SOTM/Map/Reasons",reasons);
+    }
+
+    ShooterCalibration cal = ShotMaps.get().calibration();
+    if (cal == null) {
+      return; // the 3D lines need the release height and the hood calibration
+    }
+    double releaseZ = cal.axleHeight();
     Pose2d turretPose = TurretUtil.getTurretPose(m_swerve.getPose2d());
-    Pose2d targetPose2d = TurretUtil.getTargetPose(TurretUtil.TargetType.HUB);
+    Pose2d targetPose2d = TurretUtil.getTargetPose(target);
+    double targetZ = (target == TargetType.HUB) ? kHubEntryHeight : 0;
 
-    // Ideal Aim Line (Turret to Hub)
+    if (sotm != null) {
+      // Launch velocity relative to the robot, drawn from the release point
+      Translation3d release = new Translation3d(sotm.turretPosition().getX(), sotm.turretPosition().getY(), releaseZ);
+      Logger.recordOutput("Shooter/SOTM/Map/LaunchLine3d",
+          new Translation3d[] { release, release.plus(sotm.launchVector().times(kLaunchLineSeconds)) });
+    }
+
+    // Ideal Aim Line (Turret to target)
     double targetTurretHeadingRad = m_swerve.getPose2d().getRotation().getRadians() + Math.toRadians(leadShot.turretAngleDegrees);
-    Pose3d idealStart3d = new Pose3d(turretPose.getX(), turretPose.getY(), 0.44, new Rotation3d(0, 0, targetTurretHeadingRad));
-    Pose3d idealEnd3d = new Pose3d(targetPose2d.getX(), targetPose2d.getY(), 2.64, new Rotation3d());
+    Pose3d idealStart3d = new Pose3d(turretPose.getX(), turretPose.getY(), releaseZ, new Rotation3d(0, 0, targetTurretHeadingRad));
+    Pose3d idealEnd3d = new Pose3d(targetPose2d.getX(), targetPose2d.getY(), targetZ, new Rotation3d());
     Logger.recordOutput("Shooter/SOTM/AimLine3d", new Pose3d[] { idealStart3d, idealEnd3d });
 
     // Actual Shot Vector based on REAL physical turret motor position, hood angle, and flywheel power
     double actualMotorRotations = m_turret.getCurrentPosition();
     double actual5454Deg = actualMotorRotations >= 0 
-        ? actualMotorRotations * 7.87499 
-        : 360.0 + (actualMotorRotations * 7.87499);
+        ? actualMotorRotations * TurretSubsystemPots.kMotorRotationsToAngle 
+        : 360.0 + (actualMotorRotations * TurretSubsystemPots.kMotorRotationsToAngle);
     double actualTurretRelDeg = (actual5454Deg > 180.0) ? (360.0 - actual5454Deg) : -actual5454Deg;
 
     double robotHeadingRad = m_swerve.getPose2d().getRotation().getRadians();
@@ -439,11 +596,12 @@ switch(m_state){
     double distance = (leadShot.distanceMeters > 0 && leadShot.distanceMeters < 50.0) ? leadShot.distanceMeters : 3.0;
     double actualShotDistanceMeters = Math.max(0.5, distance * powerRatio);
 
-    double hoodElevationRad = Math.toRadians(m_shooter.getHoodPos());
+    // getHoodPos() is CANcoder rotations; the calibration turns it into the launch angle
+    double hoodElevationRad = Math.toRadians(cal.angleForHoodRot(m_shooter.getHoodPos()));
 
     double startX = turretPose.getX();
     double startY = turretPose.getY();
-    double startZ = 0.44;
+    double startZ = releaseZ;
 
     double endX = startX + actualShotDistanceMeters * Math.cos(hoodElevationRad) * Math.cos(actualTurretFieldHeadingRad);
     double endY = startY + actualShotDistanceMeters * Math.cos(hoodElevationRad) * Math.sin(actualTurretFieldHeadingRad);

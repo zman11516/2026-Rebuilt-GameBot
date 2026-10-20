@@ -17,7 +17,7 @@ public class HubLookUpTable {
     /** Data structure to hold shooting parameters */
     public static class ShootingParameters {
         public final double shooterSpeed;     // RPS (Revolutions Per Second)
-        public final double hoodPosition;  // Degrees
+        public final double hoodPosition;  // Hood CANcoder rotations (not degrees)
         public final double timeOfFlight;     // Seconds
         
         public ShootingParameters(double shooterSpeed, double hoodPosition, double timeOfFlight) {
@@ -37,14 +37,25 @@ public class HubLookUpTable {
     
     /** Initialize the lookup table with known data points */
     private void initializeLookupTable() {
-        // Distance (m), Shooter Speed (RPS), Hood Angle (°), Time of Flight (s)
+        // Distance (m), Shooter Speed (RPS), Hood Position (CANcoder rotations), Time of Flight (s)
         // KrakenX60 shooting 226g ball - optimized for constant RPS ~75
         
-        addEntry(1.8,  45, 0.0, 1); 
+        // Tuned 2026-10 (also tools/shotsim/data/tuned_hub.csv, which calibrates the shot maps)
+        addEntry(2.077, 46, 0, 0.894);
+        addEntry(2.598, 54, 0, 1.152);
+        addEntry(2.999, 58, 0, 1.2);
+        addEntry(3.368, 59, 0.05, 1.354);
+        addEntry(3.762, 61, 0.1, 1.277);
+        addEntry(4.199, 63, 0.12, 1.28);
+        addEntry(4.575, 64, 0.15, 1.302);
+        addEntry(4.945, 66, 0.18, 1.304);
+
+     /*   addEntry(1.8,  45, 0.0, 1); 
         addEntry(2.05,  47, 0.0, 1.05); 
         addEntry(2.3,  47, 0.0, 1.11); 
         addEntry(2.5,  51, 0.1, 1.12);  
         addEntry(3.01,  53, 0.15, 1.07);  
+      */
  
         
        

@@ -69,7 +69,7 @@ public class TurretSubsystemPots extends SubsystemBase {
   private double kLowerLimit=-39;
   private double kUpperLimit=5.5;
   private final double kGearReduction=8;  //80t to 10tooth
-  private final double kMotorRotationsToAngle=7.87499;//7.80;
+  public static final double kMotorRotationsToAngle=7.87499;//7.80;  turret degrees per motor rotation
   private final double kDegreesPerRotation=0;
   private DutyCycleOut m_TurretDutyCycleOut = new DutyCycleOut(0.0);
   private MotionMagicVoltage mmRequest = new MotionMagicVoltage(0);
@@ -154,9 +154,14 @@ public class TurretSubsystemPots extends SubsystemBase {
      m_turretMotor.stopMotor();
   }
  
+  /** True if moveMotor will accept this motor position (inside the soft limits); it ignores anything else. */
+  public boolean isMotorTargetReachable(double targetmotorPosition){
+    return (targetmotorPosition>kLowerLimit) && (targetmotorPosition<kUpperLimit);
+  }
+
   public void moveMotor(double targetmotorPosition){
     m_targetPos = targetmotorPosition;
-    if((targetmotorPosition>kLowerLimit) && (targetmotorPosition<kUpperLimit)){ 
+    if(isMotorTargetReachable(targetmotorPosition)){ 
          m_turretMotor.setControl(mmRequest.withPosition(targetmotorPosition)); 
  
     } else {

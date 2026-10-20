@@ -74,6 +74,7 @@ import edu.wpi.first.wpilibj.PowerDistribution;
 import frc.robot.subsystems.shooter.ShotCalculator;
 import frc.robot.subsystems.shooter.TurretUtil;
 import frc.robot.subsystems.shooter.TurretUtil.TargetType;
+import frc.robot.subsystems.shooter.shotmap.ShotMaps;
 import frc.robot.subsystems.shooter.PassCalculator.ShootingParameters;
 import frc.robot.RobotState;
 
@@ -219,6 +220,11 @@ public class RobotContainer {
     m_turretLimelight.setLimelightIDFilter(10,25);
     SmartDashboard.putData("field", m_Field2d);
     SmartDashboard.putNumber("Speed Adjuster:", 1);
+    // Load the shot maps now (not on the first shot) and say once if any file is missing or bad
+    String shotMapErrors = ShotMaps.get().loadErrors();
+    if (!shotMapErrors.isEmpty()) {
+      DriverStation.reportWarning("Shot map files failed to load; those shots use the lookup tables:\n" + shotMapErrors, false);
+    }
     configureNamedCommands();
     m_autoChooser=AutoBuilder.buildAutoChooser();
     createAutonomousCommandList(); 
@@ -341,11 +347,18 @@ public class RobotContainer {
     //m_xBoxDriver.start().whileTrue(shootOne);
     //m_xBoxOperator.leftTrigger().whileTrue(shootOne);
     
-    Command pass = new ShootPopcornCommand(m_newShooter,m_hopper,m_intake, true, m_TurretSubsystem);
-    Command targetPass = Commands.runOnce(()->setTracking(TurretTrackingMethod.PASS));
-    SequentialCommandGroup passIt = new SequentialCommandGroup(targetPass,pass);
-    m_xBoxDriver.x().whileTrue(passIt);
-    m_xBoxOperator.rightTrigger().whileTrue(passIt);
+    // Pass on the move: same pattern as shotMove, aimed at the nearest pass target every loop
+    Supplier<Command> passMove = () -> Commands.sequence(
+        Commands.runOnce(()->setTracking(TurretTrackingMethod.NOTARGET)),
+        new ShotOnTheMoveCommand(m_TurretSubsystem,m_swerve, m_newShooter, m_hopper, m_intake, 0, TargetType.PASS)
+            .finallyDo((interrupted)->setTracking(TurretTrackingMethod.HUB)));
+
+    // Old popcorn pass binding disabled while pass-on-the-move is on these buttons.
+    //Command pass = new ShootPopcornCommand(m_newShooter,m_hopper,m_intake, true, m_TurretSubsystem);
+    //Command targetPass = Commands.runOnce(()->setTracking(TurretTrackingMethod.PASS));
+    //SequentialCommandGroup passIt = new SequentialCommandGroup(targetPass,pass);
+    m_xBoxDriver.x().whileTrue(passMove.get());
+    m_xBoxOperator.rightTrigger().whileTrue(passMove.get());
     
     Command shoot = new ShootPopcornCommand(m_newShooter,m_hopper,m_intake, false, m_TurretSubsystem);
     Command targetHubPopcorn = Commands.runOnce(()->setTracking(TurretTrackingMethod.HUB));
