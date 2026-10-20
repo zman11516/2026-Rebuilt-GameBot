@@ -164,6 +164,14 @@
             <button id="x-cal">Download shooter_calibration.json</button>
           </div>
           <div id="x-summary" class="readout"></div>
+          <div id="x-last" hidden>
+            <p class="hint">
+              If the download did not start (some hosted viewers block downloads), copy the JSON below and save it as
+              <code id="x-name"></code>.
+            </p>
+            <div class="controls"><button id="x-copy">Copy JSON</button> <span id="x-copied" class="hint"></span></div>
+            <textarea id="x-out" rows="8" readonly spellcheck="false"></textarea>
+          </div>
           <h3>shooter_calibration.json (from the mechanism panel)</h3>
           <pre id="x-preview"></pre>
         </section>

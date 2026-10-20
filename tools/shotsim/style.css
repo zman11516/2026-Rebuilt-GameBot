@@ -1,5 +1,6 @@
 /* Dark navy theme in the spirit of 4414's shot simulator. Plot colours live in lib/ui-plot.mjs. */
 :root {
+  color-scheme: dark;
   --page: #141a26;
   --bg: #1b2232;
   --panel: #222a3d;
@@ -490,4 +491,14 @@ pre {
     border-right: none;
     border-top: 1px solid var(--line);
   }
+}
+
+#x-out {
+  width: 100%;
+  min-height: 8rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }

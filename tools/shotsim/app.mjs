@@ -953,12 +953,30 @@ function initFeedField() {
 // ---------------------------------------------------------------- 7 Export
 
 function download(name, value) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 1) + '\n'], { type: 'application/json' }));
+  const text = JSON.stringify(value, null, 1) + '\n';
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
   const a = document.createElement('a');
   a.href = url;
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // Sandboxed viewers (e.g. a shared claude.ai link) silently ignore downloads, so always offer a copy too.
+  $('x-name').textContent = name;
+  $('x-out').value = text;
+  $('x-copied').textContent = '';
+  $('x-last').hidden = false;
+}
+
+async function copyExport() {
+  const out = $('x-out');
+  try {
+    await navigator.clipboard.writeText(out.value);
+    $('x-copied').textContent = 'Copied.';
+  } catch {
+    out.focus();
+    out.select();
+    $('x-copied').textContent = 'Clipboard blocked: the text is selected, press Ctrl+C.';
+  }
 }
 
 function renderExport() {
@@ -1070,6 +1088,7 @@ async function init() {
   $('x-cal').addEventListener('click', () =>
     download('shooter_calibration.json', robotCalibration(state.mech, state.configs.hub)),
   );
+  $('x-copy').addEventListener('click', copyExport);
   initFeedField();
   updateStale();
 
