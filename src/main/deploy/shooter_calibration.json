@@ -1,0 +1,31 @@
+{
+ "schema": "shotsim5454-calibration/1",
+ "hood": {
+  "theta0Deg": 72.4,
+  "degPerRot": -34.82,
+  "rotMin": 0,
+  "rotMax": 0.6
+ },
+ "flywheel": {
+  "exitSpeedPerRotorRps": 0.1464,
+  "exitSpeedScale": 1,
+  "rotorRpsMin": 20,
+  "rotorRpsMax": 96,
+  "wheelDiameter": 0.1016,
+  "wheelToHoodGap": 0.1315
+ },
+ "launcher": {
+  "axleHeight": 0.4453,
+  "axleForward": 0.0994,
+  "axleLateral": 0.0243,
+  "exitRadius": 0.11655
+ },
+ "turretOffset": [
+  -0.0762,
+  0.1397
+ ],
+ "sotm": {
+  "phaseDelay": 0.03,
+  "mechLatency": 0.02
+ }
+}

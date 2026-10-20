@@ -1,0 +1,49 @@
+{
+  "schema": "shotsim5454-config/1",
+  "kind": "hub",
+  "name": "hub",
+  "mechanism": "mechanism.json",
+  "physics": {
+    "gravity": 9.80665,
+    "airDensity": 1.204,
+    "ballMass": 0.215,
+    "ballDiameter": 0.1501,
+    "dragCoefficient": 0.55,
+    "buoyancy": true,
+    "lift": { "kL": 0.8, "clMax": 0.35, "spinRatio": 0.9 },
+    "integrator": { "dt": 0.004, "maxTime": 4.0 },
+    "_source": "Ball: 2026 Game Manual 5.10.1 (5.91 in, 0.448-0.500 lb; AndyMark 215 g target). Air 1.204 kg/m^3 (20 C sea level). Cd 0.55 / Cl = min(0.8 S, 0.35) / spinRatio 0.9 = passive-hood preset from the open-source cross-check (6328, 6940, 5572 maps; every open sim uses Cd 0.47; CD thread 394940 kinematics). Drag and lift trade off; tune the mechanism knobs, not these."
+  },
+  "hub": {
+    "entryHeight": 1.8288,
+    "halfWidth": 0.5296,
+    "windowInset": 0.02,
+    "faceOffset": 0.5969,
+    "lipClearance": 0.04,
+    "apexMax": 7.0,
+    "_source": "Manual 5.4 + field drawings p.25: front edge of the opening at 72 in, hexagon 41.7 in across flats (inscribed half-width 0.5296 m), hub 47 in square (face 0.5969 m from centre). windowInset/lipClearance are margins (assumed). apexMax 7.0 m = 25 ft venue minimum ceiling; use 3.5 m for a 12 ft practice space."
+  },
+  "selection": {
+    "mode": "maximin",
+    "sigmaSpeed": 0.2,
+    "sigmaAngleDeg": 1.0,
+    "speedBias": 0.0,
+    "angleStepDeg": 0.5,
+    "anglePadDeg": 3.0,
+    "speedTol": 0.005,
+    "fixedHoodRot": null,
+    "_source": "4414's rule: maximise the weakest of (speed margin / sigmaSpeed, angle margin / sigmaAngle), speed at the middle of the scoring window. sigmaSpeed 0.2 m/s ~ our +/-2 rps flywheel gate; sigmaAngle 1 deg (Aieda/2084/Tyler). Refine with a 20-shot test."
+  },
+  "grid": {
+    "distance": { "min": 1.0, "max": 6.5, "step": 0.1 },
+    "radialVelocity": { "min": -2.0, "max": 2.0, "step": 0.25 },
+    "_source": "Distance = turret axis to hub centre (2D). Radial velocity + = closing on the hub. SOTM drive is throttled to 25% (1.5 m/s)."
+  },
+  "fit": { "degree": 2 },
+  "tangential": {
+    "absMax": 1.5,
+    "maxBearingRateRadPerSec": 0.4,
+    "_source": "Plus per-shot mechanism limits (hood min angle, flywheel max) computed by the generator. Bearing-rate rule from 6328 DriveCommands; set null to disable."
+  },
+  "sotm": { "phaseDelay": 0.03, "mechLatency": 0.02, "_source": "6328/1540 phase delay 30 ms; 5962 mechanism latency 20 ms. Measure feed-to-exit delay on video." }
+}

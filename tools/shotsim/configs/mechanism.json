@@ -1,0 +1,31 @@
+{
+  "_doc": "5454 launcher geometry + calibration knobs. Single source of truth: `node tools/shotsim/cli.mjs generate` copies this into src/main/deploy/shooter_calibration.json for the robot. Lengths in metres, angles in degrees.",
+  "hood": {
+    "theta0Deg": 72.4,
+    "degPerRot": -34.82,
+    "rotMin": 0,
+    "rotMax": 0.6,
+    "_source": "Hood pivots on the flywheel axle (CAD). Plate 25.711 deg at CANcoder 0.0 -> 46.601 deg at 0.6 rot: 20.89 deg / 0.6 rot = 34.82 deg/rot, raising the plate flattens the shot. theta0 (launch angle at CANcoder 0) is knob #1: fitted from the tuned hub table (`cli.mjs calibrate`), confirm with 240 fps side video."
+  },
+  "flywheel": {
+    "exitSpeedPerRotorRps": 0.1464,
+    "exitSpeedScale": 1,
+    "rotorRpsMin": 20,
+    "rotorRpsMax": 96,
+    "wheelDiameter": 0.1016,
+    "wheelToHoodGap": 0.1315,
+    "_source": "4 in Stealth 40A, single wheel, passive hood, 5.177 in gap (0.733 in compression). exitSpeedPerRotorRps is knob #2 (ball m/s per flywheel ROTOR rps, so the gear ratio is folded in); fitted from the tuned hub table. rotorRpsMax 96 = highest speed used in PassLookUpTable."
+  },
+  "launcher": {
+    "axleHeight": 0.4453,
+    "axleForward": 0.0994,
+    "axleLateral": 0.0243,
+    "exitRadius": 0.11655,
+    "_source": "CAD: flywheel axle 17.531 in above origin; turret centre -> axle 3.913 in in-plane, 0.956 in lateral (sign: + = left of the shot line, VERIFY), 3.375 in up. exitRadius = wheel radius 2.0 in + gap/2 2.589 in (ball centre on the hood)."
+  },
+  "turretOffset": [
+    -0.0762,
+    0.1397
+  ],
+  "_turretOffsetSource": "Constants.TurretConstants.kTurretOffsetX/Y (robot frame), confirmed against CAD within 1/8 in."
+}
