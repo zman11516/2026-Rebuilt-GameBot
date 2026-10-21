@@ -1,5 +1,6 @@
 d,rps,hoodRot,tof
 # Hand-tuned hub shots from HubLookUpTable (2026-10). tof column flagged unreliable by the team; calibrate ignores it unless --tof.
+# d = "Odom Distance" (ShootMappingCommand): turret axis -> hub target from the robot pose (TurretUtil.getDistance), taken with odometry matching the real field.
 2.077,46,0,0.894
 2.598,54,0,1.152
 2.999,58,0,1.2

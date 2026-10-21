@@ -168,6 +168,10 @@ change run `cli.mjs generate`, which also rewrites `shooter_calibration.json`.
    0, 0.3 and 0.6 rotations and two or three flywheel speeds. The launch angle over the first ~0.1 s gives
    `theta0Deg` (and checks `degPerRot`); the ball travel over the first ~0.3 m gives the exit speed and so
    `exitSpeedPerRotorRps`. Until then both come from `cli.mjs calibrate` on the tuned table (`--write` stores them).
+   The tuned table's distances are the `"Odom Distance"` dashboard value (turret axis to hub target from the robot
+   pose), the same distance the robot uses at runtime. Only trust them when odometry matches the field: pose
+   corrected by vision, or reset on a measured mark with the practice hub at its field position. A constant offset
+   there shifts `theta0Deg` and `exitSpeedPerRotorRps`; if in doubt, tape-measure turret centre to hub centre instead.
 2. **Dispersion.** 20 shots from one spot and setting onto a taped floor grid, logging hood and flywheel error at
    the moment of feeding. The spreads set `selection.sigmaSpeed` and `sigmaAngleDeg`.
 3. **Latency.** Count video frames from the feed command (logged timestamp) to the ball leaving: `sotm.mechLatency`.

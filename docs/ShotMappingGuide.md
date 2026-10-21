@@ -36,7 +36,7 @@ Follow these steps to map the field and gather data points:
 
 ### Step B: Configure the Shot Test
 1. Set the `"Target Speed"` (RPS) and `"Hood Target Position"` (CANcoder rotations) on the dashboard to your starting test values.
-2. Read the `"Odom Distance"` on the SmartDashboard (or measure the distance physically from the Hub center to the robot's turret pivot center).
+2. Read the `"Odom Distance"` on the SmartDashboard (or measure the distance physically from the Hub center to the robot's turret pivot center). Odom Distance is only valid when odometry matches the field: pose corrected by vision, or reset on a measured mark with the practice hub at its field position. These distances also feed `tools/shotsim/data/tuned_hub.csv` for calibration.
 
 ### Step C: Capture the Shot and Time of Flight
 1. Set up an external high-speed camera (e.g., a phone recording at 120 FPS or 240 FPS) with a clear view of both the shooter exit and the target (Hub).
