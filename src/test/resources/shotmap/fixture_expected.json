@@ -7,14 +7,14 @@
    "expected": {
     "valid": true,
     "reason": "OK",
-    "angleDeg": 71.33854226143751,
-    "speed": 6.9848903856875,
-    "tof": 1.0666307318125001,
-    "angleMarginLow": 0,
-    "angleMarginHigh": 3.059668649,
-    "speedMarginLow": 0.2240804809375,
-    "speedMarginHigh": 0.2240804809375,
-    "vtMax": 0.853295
+    "angleDeg": 71.546802421875,
+    "speed": 7.000812409375,
+    "tof": 1.0725492693124998,
+    "angleMarginLow": 0.05045226749999995,
+    "angleMarginHigh": 3.0601600274375,
+    "speedMarginLow": 0.2570943608125,
+    "speedMarginHigh": 0.2570943608125,
+    "vtMax": 0.855224
    }
   },
   {
@@ -24,14 +24,14 @@
    "expected": {
     "valid": true,
     "reason": "OK",
-    "angleDeg": 71.61368862082747,
-    "speed": 7.103848358790975,
-    "tof": 1.0980877719820752,
-    "angleMarginLow": 0,
-    "angleMarginHigh": 2.9708134543103997,
-    "speedMarginLow": 0.18929709240337503,
-    "speedMarginHigh": 0.18929709240337503,
-    "vtMax": 1.0162993124000002
+    "angleDeg": 71.85367171665774,
+    "speed": 7.12464280303445,
+    "tof": 1.1053129662856749,
+    "angleMarginLow": 0.0073168472260998485,
+    "angleMarginHigh": 2.968334758569475,
+    "speedMarginLow": 0.22179363832877502,
+    "speedMarginHigh": 0.22179363832877502,
+    "vtMax": 1.0173794876
    }
   },
   {
@@ -41,13 +41,13 @@
    "expected": {
     "valid": true,
     "reason": "OK",
-    "angleDeg": 65.78751903723959,
-    "speed": 9.2473265469192,
-    "tof": 1.5002850509499999,
+    "angleDeg": 65.7073941998356,
+    "speed": 9.238847314770803,
+    "tof": 1.4977298930308003,
     "angleMarginLow": 0,
-    "angleMarginHigh": 2.124267268098,
-    "speedMarginLow": 0.2126318779272,
-    "speedMarginHigh": 0.2126318779272,
+    "angleMarginHigh": 2.1484550286075996,
+    "speedMarginLow": 0.22826044595799996,
+    "speedMarginHigh": 0.22826044595799996,
     "vtMax": 1.5
    }
   },
@@ -58,13 +58,13 @@
    "expected": {
     "valid": true,
     "reason": "OK",
-    "angleDeg": 69.4934821801425,
-    "speed": 9.17924639004,
-    "tof": 1.5427202989825002,
+    "angleDeg": 69.54558393663251,
+    "speed": 9.1920949961975,
+    "tof": 1.5457468797175,
     "angleMarginLow": 0,
-    "angleMarginHigh": 2.1008736650775,
-    "speedMarginLow": 0.17631083589,
-    "speedMarginHigh": 0.17631083589,
+    "angleMarginHigh": 2.1046200568525,
+    "speedMarginLow": 0.19569338389749996,
+    "speedMarginHigh": 0.19569338389749996,
     "vtMax": 1.5
    }
   },
@@ -75,14 +75,14 @@
    "expected": {
     "valid": false,
     "reason": "DISTANCE_OUT_OF_RANGE",
-    "angleDeg": 71.954717972,
-    "speed": 6.418302435999999,
-    "tof": 0.9368640680000002,
-    "angleMarginLow": 0.26915101799999996,
-    "angleMarginHigh": 3.326256924,
-    "speedMarginLow": 0.20876051399999998,
-    "speedMarginHigh": 0.20876051399999998,
-    "vtMax": 0.627256
+    "angleDeg": 72.24929495800001,
+    "speed": 6.438041916000001,
+    "tof": 0.944596601,
+    "angleMarginLow": 0.43882278799999996,
+    "angleMarginHigh": 3.320901276,
+    "speedMarginLow": 0.248598147,
+    "speedMarginHigh": 0.248598147,
+    "vtMax": 0.628075
    }
   },
   {
@@ -92,13 +92,13 @@
    "expected": {
     "valid": false,
     "reason": "DISTANCE_OUT_OF_RANGE",
-    "angleDeg": 65.381744148,
-    "speed": 10.028336338,
-    "tof": 1.6473833820000001,
+    "angleDeg": 65.319777974,
+    "speed": 10.017149442000001,
+    "tof": 1.6444661729999999,
     "angleMarginLow": 0,
-    "angleMarginHigh": 1.7895085760000002,
-    "speedMarginLow": 0.124525322,
-    "speedMarginHigh": 0.124525322,
+    "angleMarginHigh": 1.8129325840000001,
+    "speedMarginLow": 0.145498809,
+    "speedMarginHigh": 0.145498809,
     "vtMax": 1.5
    }
   },
@@ -109,14 +109,14 @@
    "expected": {
     "valid": false,
     "reason": "RADIAL_OUT_OF_RANGE",
-    "angleDeg": 72.24527550693749,
-    "speed": 7.1138037136875,
-    "tof": 1.1087601300625,
-    "angleMarginLow": 0.17915737193749992,
-    "angleMarginHigh": 2.9264883105,
-    "speedMarginLow": 0.11398818843749997,
-    "speedMarginHigh": 0.11398818843749997,
-    "vtMax": 1.282019
+    "angleDeg": 72.605574589375,
+    "speed": 7.150953062375001,
+    "tof": 1.1204105745625,
+    "angleMarginLow": 0.21304963249999995,
+    "angleMarginHigh": 2.9099150629375,
+    "speedMarginLow": 0.1466298555625,
+    "speedMarginHigh": 0.1466298555625,
+    "vtMax": 1.284254
    }
   },
   {
@@ -126,14 +126,14 @@
    "expected": {
     "valid": false,
     "reason": "DISTANCE_OUT_OF_RANGE",
-    "angleDeg": 72.93568480131002,
-    "speed": 6.0365753879575,
-    "tof": 0.8513857695375002,
-    "angleMarginLow": 0.9127458055424998,
-    "angleMarginHigh": 3.4060215563625,
-    "speedMarginLow": 0.0505092172075,
-    "speedMarginHigh": 0.0505092172075,
-    "vtMax": 0.624339
+    "angleDeg": 73.48087512192251,
+    "speed": 6.0810686241675,
+    "tof": 0.8668052973175,
+    "angleMarginLow": 1.0171804859974998,
+    "angleMarginHigh": 3.3797689108099997,
+    "speedMarginLow": 0.09662915923750001,
+    "speedMarginHigh": 0.09662915923750001,
+    "vtMax": 0.624291
    }
   },
   {
@@ -143,14 +143,14 @@
    "expected": {
     "valid": true,
     "reason": "OK",
-    "angleDeg": 72.008,
-    "speed": 6.971973,
-    "tof": 1.075437,
-    "angleMarginLow": 4.349162,
-    "angleMarginHigh": 3.5,
-    "speedMarginLow": 0.618348,
-    "speedMarginHigh": 0.618348,
-    "vtMax": 0.853295
+    "angleDeg": 72.4,
+    "speed": 7.033175,
+    "tof": 1.09326,
+    "angleMarginLow": 4.168342,
+    "angleMarginHigh": 3.482,
+    "speedMarginLow": 0.635801,
+    "speedMarginHigh": 0.635801,
+    "vtMax": 0.855224
    }
   },
   {
@@ -160,14 +160,14 @@
    "expected": {
     "valid": true,
     "reason": "OK",
-    "angleDeg": 72.008,
-    "speed": 7.088364159600001,
-    "tof": 1.1020818312,
-    "angleMarginLow": 4.4009309332,
-    "angleMarginHigh": 3.375446678,
-    "speedMarginLow": 0.5605252904,
-    "speedMarginHigh": 0.5605252904,
-    "vtMax": 1.0162993124000002
+    "angleDeg": 72.26012296520001,
+    "speed": 7.1173573355999995,
+    "tof": 1.11137278,
+    "angleMarginLow": 4.258027760000001,
+    "angleMarginHigh": 3.3670445964,
+    "speedMarginLow": 0.5693583720000001,
+    "speedMarginHigh": 0.5693583720000001,
+    "vtMax": 1.0173794876
    }
   },
   {
@@ -177,13 +177,13 @@
    "expected": {
     "valid": true,
     "reason": "OK",
-    "angleDeg": 65.228,
-    "speed": 9.188342928,
-    "tof": 1.47678268,
-    "angleMarginLow": 2.6747511840000002,
-    "angleMarginHigh": 2.428966704,
-    "speedMarginLow": 0.48061876800000003,
-    "speedMarginHigh": 0.48061876800000003,
+    "angleDeg": 65.15744004000001,
+    "speed": 9.175662552,
+    "tof": 1.473432472,
+    "angleMarginLow": 2.69855676,
+    "angleMarginHigh": 2.438264288,
+    "speedMarginLow": 0.479498696,
+    "speedMarginHigh": 0.479498696,
     "vtMax": 1.5
    }
   },
@@ -194,13 +194,13 @@
    "expected": {
     "valid": true,
     "reason": "OK",
-    "angleDeg": 69.488,
-    "speed": 9.20126664,
-    "tof": 1.5435821600000001,
-    "angleMarginLow": 2.46709222,
-    "angleMarginHigh": 2.3374923599999997,
-    "speedMarginLow": 0.46963447999999997,
-    "speedMarginHigh": 0.46963447999999997,
+    "angleDeg": 69.4651717,
+    "speed": 9.19569718,
+    "tof": 1.5422413,
+    "angleMarginLow": 2.4793393999999997,
+    "angleMarginHigh": 2.33992156,
+    "speedMarginLow": 0.46895372,
+    "speedMarginHigh": 0.46895372,
     "vtMax": 1.5
    }
   },
@@ -211,14 +211,14 @@
    "expected": {
     "valid": false,
     "reason": "DISTANCE_OUT_OF_RANGE",
-    "angleDeg": 72.008,
-    "speed": 6.288615,
-    "tof": 0.898713,
-    "angleMarginLow": 5.25,
-    "angleMarginHigh": 3.5,
-    "speedMarginLow": 0.553075,
-    "speedMarginHigh": 0.553075,
-    "vtMax": 0.627256
+    "angleDeg": 72.4,
+    "speed": 6.322029,
+    "tof": 0.911407,
+    "angleMarginLow": 5.720429,
+    "angleMarginHigh": 3.482,
+    "speedMarginLow": 0.57834,
+    "speedMarginHigh": 0.57834,
+    "vtMax": 0.628075
    }
   },
   {
@@ -228,13 +228,13 @@
    "expected": {
     "valid": false,
     "reason": "DISTANCE_OUT_OF_RANGE",
-    "angleDeg": 65.008,
-    "speed": 9.994185,
-    "tof": 1.638057,
-    "angleMarginLow": 2.306692,
-    "angleMarginHigh": 2.134432,
-    "speedMarginLow": 0.434212,
-    "speedMarginHigh": 0.434212,
+    "angleDeg": 64.938571,
+    "speed": 9.979918,
+    "tof": 1.63449,
+    "angleMarginLow": 2.327279,
+    "angleMarginHigh": 2.146258,
+    "speedMarginLow": 0.433263,
+    "speedMarginHigh": 0.433263,
     "vtMax": 1.5
    }
   },
@@ -245,14 +245,14 @@
    "expected": {
     "valid": false,
     "reason": "RADIAL_OUT_OF_RANGE",
-    "angleDeg": 72.008,
-    "speed": 6.991108,
-    "tof": 1.088263,
-    "angleMarginLow": 4.636142,
-    "angleMarginHigh": 3.5,
-    "speedMarginLow": 0.468735,
-    "speedMarginHigh": 0.468735,
-    "vtMax": 1.282019
+    "angleDeg": 72.4,
+    "speed": 7.034703,
+    "tof": 1.101852,
+    "angleMarginLow": 4.466803,
+    "angleMarginHigh": 3.482,
+    "speedMarginLow": 0.480429,
+    "speedMarginHigh": 0.480429,
+    "vtMax": 1.284254
    }
   },
   {
@@ -262,14 +262,14 @@
    "expected": {
     "valid": false,
     "reason": "DISTANCE_OUT_OF_RANGE",
-    "angleDeg": 72.93568480131002,
-    "speed": 6.0365753879575,
-    "tof": 0.8513857695375002,
-    "angleMarginLow": 0.9127458055424998,
-    "angleMarginHigh": 3.4060215563625,
-    "speedMarginLow": 0.0505092172075,
-    "speedMarginHigh": 0.0505092172075,
-    "vtMax": 0.624339
+    "angleDeg": 73.48087512192251,
+    "speed": 6.0810686241675,
+    "tof": 0.8668052973175,
+    "angleMarginLow": 1.0171804859974998,
+    "angleMarginHigh": 3.3797689108099997,
+    "speedMarginLow": 0.09662915923750001,
+    "speedMarginHigh": 0.09662915923750001,
+    "vtMax": 0.624291
    }
   }
  ],
@@ -298,11 +298,11 @@
     "vr": 0,
     "vt": 0,
     "turretYawDeg": -3.4817558487949327,
-    "elevationDeg": 70.37754886517683,
-    "exitSpeed": 7.722568631954498,
-    "hoodRot": 0.058083030867983096,
-    "flywheelRps": 52.74978573739411,
-    "tof": 1.2286078105839766
+    "elevationDeg": 70.48502828507208,
+    "exitSpeed": 7.733124421922948,
+    "hoodRot": 0.054996315764730894,
+    "flywheelRps": 52.82188812788899,
+    "tof": 1.2322190564638256
    }
   },
   {
@@ -328,12 +328,12 @@
     "d": 2.7028652445136805,
     "vr": -0.07018477905439656,
     "vt": 0.9975340078358662,
-    "turretYawDeg": -25.226103504015782,
-    "elevationDeg": 68.90991255635346,
-    "exitSpeed": 7.847631675403799,
-    "hoodRot": 0.1002322643206934,
-    "flywheelRps": 53.60404149865983,
-    "tof": 1.2400342430542672
+    "turretYawDeg": -25.287538092626846,
+    "elevationDeg": 68.99752948380228,
+    "exitSpeed": 7.856575909631654,
+    "hoodRot": 0.09771598265932578,
+    "flywheelRps": 53.665135994751736,
+    "tof": 1.2431382186794298
    }
   },
   {
@@ -359,12 +359,12 @@
     "d": 3.5852107581826846,
     "vr": 0.7858547101101585,
     "vt": 0.21298821422247527,
-    "turretYawDeg": -44.29179092255208,
-    "elevationDeg": 71.21081131245735,
-    "exitSpeed": 7.9158616210855355,
-    "hoodRot": 0.03415246087141452,
-    "flywheelRps": 54.07009304020175,
-    "tof": 1.285401462069214
+    "turretYawDeg": -44.32571911823044,
+    "elevationDeg": 71.40715729000779,
+    "exitSpeed": 7.940366660584039,
+    "hoodRot": 0.02851357581827161,
+    "flywheelRps": 54.237477189781686,
+    "tof": 1.2926332087020056
    }
   },
   {
@@ -390,12 +390,12 @@
     "d": 2.8017105424093796,
     "vr": -0.49820348181662016,
     "vt": 0.5371496382813605,
-    "turretYawDeg": -17.293109663894597,
-    "elevationDeg": 68.19353494255283,
-    "exitSpeed": 8.230823013998966,
-    "hoodRot": 0.12080600394736288,
-    "flywheelRps": 56.221468674856325,
-    "tof": 1.3159746728565582
+    "turretYawDeg": -17.290991164720026,
+    "elevationDeg": 68.19056867737076,
+    "exitSpeed": 8.231463636970876,
+    "hoodRot": 0.12089119249366005,
+    "flywheelRps": 56.22584451482839,
+    "tof": 1.316233636787724
    }
   },
   {
@@ -424,11 +424,11 @@
     "vr": 0,
     "vt": 0,
     "turretYawDeg": -27.658506069468558,
-    "elevationDeg": 71.954717972,
-    "exitSpeed": 6.418302435999999,
-    "hoodRot": 0.012788111085583236,
-    "flywheelRps": 43.84086363387978,
-    "tof": 0.9368640680000002
+    "elevationDeg": 72.24929495800001,
+    "exitSpeed": 6.438041916000001,
+    "hoodRot": 0.004328117231476119,
+    "flywheelRps": 43.975696147540994,
+    "tof": 0.944596601
    }
   },
   {
@@ -455,11 +455,11 @@
     "vr": 0,
     "vt": 0,
     "turretYawDeg": -3.4817558487949327,
-    "elevationDeg": 71.40854972420968,
-    "exitSpeed": 7.8794846817506645,
-    "hoodRot": 0.028473586323673975,
-    "flywheelRps": 53.82161667862476,
-    "tof": 1.2767949349139402
+    "elevationDeg": 71.30620389679481,
+    "exitSpeed": 7.858908527827886,
+    "hoodRot": 0.031412869132831506,
+    "flywheelRps": 53.681069179152225,
+    "tof": 1.2714614509893776
    }
   },
   {
@@ -485,12 +485,12 @@
     "d": 2.7028652445136805,
     "vr": -0.07018477905439656,
     "vt": 0.9975340078358662,
-    "turretYawDeg": -25.681973667446982,
-    "elevationDeg": 69.7140672335875,
-    "exitSpeed": 7.976997129059912,
-    "hoodRot": 0.07713764406698753,
-    "flywheelRps": 54.487685307786286,
-    "tof": 1.2796916797866043
+    "turretYawDeg": -25.64764880766097,
+    "elevationDeg": 69.64261575058396,
+    "exitSpeed": 7.962517623160622,
+    "hoodRot": 0.07918966827731329,
+    "flywheelRps": 54.388781578966,
+    "tof": 1.2759145780928982
    }
   },
   {
@@ -516,12 +516,12 @@
     "d": 3.5852107581826846,
     "vr": 0.7858547101101585,
     "vt": 0.21298821422247527,
-    "turretYawDeg": -44.395417387578846,
-    "elevationDeg": 71.65840836133769,
-    "exitSpeed": 7.931051468546448,
-    "hoodRot": 0.02129786440730367,
-    "flywheelRps": 54.173848828869176,
-    "tof": 1.2968074996714916
+    "turretYawDeg": -44.45154128919705,
+    "elevationDeg": 72.01521189654252,
+    "exitSpeed": 7.991649485785679,
+    "hoodRot": 0.011050778387635874,
+    "flywheelRps": 54.587769711650814,
+    "tof": 1.3128372973411397
    }
   },
   {
@@ -547,12 +547,12 @@
     "d": 2.8017105424093796,
     "vr": -0.49820348181662016,
     "vt": 0.5371496382813605,
-    "turretYawDeg": -17.1544793001583,
-    "elevationDeg": 67.80982295897935,
-    "exitSpeed": 8.206794052796878,
-    "hoodRot": 0.13182587711144894,
-    "flywheelRps": 56.05733642620818,
-    "tof": 1.3078205188109098
+    "turretYawDeg": -17.19761824104671,
+    "elevationDeg": 68.023224921628,
+    "exitSpeed": 8.247194297398494,
+    "hoodRot": 0.12569715905720868,
+    "flywheelRps": 56.33329438113725,
+    "tof": 1.3184459774329143
    }
   },
   {
@@ -581,11 +581,11 @@
     "vr": 0,
     "vt": 0,
     "turretYawDeg": -27.658506069468558,
-    "elevationDeg": 72.008,
-    "exitSpeed": 6.288614999999999,
-    "hoodRot": 0.011257897759908389,
-    "flywheelRps": 42.955020491803275,
-    "tof": 0.898713
+    "elevationDeg": 72.4,
+    "exitSpeed": 6.322028999999999,
+    "hoodRot": 0,
+    "flywheelRps": 43.183258196721305,
+    "tof": 0.911407
    }
   }
  ],

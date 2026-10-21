@@ -84,11 +84,15 @@ export function sweepAngles(shot, angles, speed, tol = 0.005) {
   return out;
 }
 
-/** Angles from min to max (inclusive) at a fixed step, padded on both sides. */
+/**
+ * Angles from min to max, padded on both sides. The step is adjusted (to the nearest whole number of
+ * steps across [min, max]) so both ends land exactly on the list: the hood's stops are always candidates.
+ */
 export function angleList(min, max, step, pad = 0) {
+  const n = max > min ? Math.max(1, Math.round((max - min) / step)) : 0;
+  const s = n > 0 ? (max - min) / n : step;
+  const k = Math.ceil(pad / s - 1e-9);
   const a = [];
-  const lo = min - pad;
-  const n = Math.round((max + pad - lo) / step);
-  for (let i = 0; i <= n; i++) a.push(Math.round((lo + i * step) * 1e6) / 1e6);
+  for (let i = -k; i <= n + k; i++) a.push(i === n ? max : i === 0 ? min : Math.round((min + i * s) * 1e9) / 1e9);
   return a;
 }
