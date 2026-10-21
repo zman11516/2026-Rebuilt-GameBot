@@ -72,6 +72,59 @@ export function selectMaximin(bands, opts) {
   return best;
 }
 
+/**
+ * Low-power rule (for passes): the slowest shot whose four margins all stay at least
+ * minMarginSigma sigmas. Speed sits that far above the window's lower edge instead of mid-window,
+ * so the flywheel runs as slowly as the accuracy floor allows.
+ * @param opts as selectMaximin, plus minMarginSigma (k)
+ * @returns the same shape as selectMaximin, or null when no angle meets the floor
+ */
+export function selectMinPower(bands, opts) {
+  const k = opts.minMarginSigma;
+  let best = null;
+  for (let i = 0; i < bands.length; i++) {
+    const b = bands[i];
+    if (!b.valid) continue;
+    if (opts.fixedAngle !== undefined && opts.fixedAngle !== null) {
+      if (Math.abs(b.angle - opts.fixedAngle) > 1e-6) continue;
+    } else if (b.angle < opts.angleMin - 1e-9 || b.angle > opts.angleMax + 1e-9) continue;
+    const s = b.sLow + k * opts.sigmaSpeed;
+    if (s > b.sHigh - k * opts.sigmaSpeed + 1e-12) continue;
+    if (opts.speedMax !== undefined && s > opts.speedMax) continue;
+    const am = angleMargins(bands, i, s);
+    if (Math.min(am.below, am.above) < k * opts.sigmaAngleDeg - 1e-12) continue;
+    const score = Math.min(Math.min(s - b.sLow, b.sHigh - s) / opts.sigmaSpeed, Math.min(am.below, am.above) / opts.sigmaAngleDeg);
+    if (!best || s < best.speed - 1e-12 || (Math.abs(s - best.speed) <= 1e-12 && score > best.score)) {
+      best = {
+        angle: b.angle,
+        speed: s,
+        score,
+        speedMarginLow: s - b.sLow,
+        speedMarginHigh: b.sHigh - s,
+        angleMarginLow: am.below,
+        angleMarginHigh: am.above,
+      };
+    }
+  }
+  return best;
+}
+
+/**
+ * Selection by mode: 'maximin' (most robust, used for the hub) or 'minPower' (slowest shot with
+ * every margin >= minMarginSigma, used for passes). minPower falls back to maximin where no shot
+ * meets the floor and marks the result fallback: true.
+ */
+export function selectShot(bands, mode, opts) {
+  if (mode === 'minPower') {
+    const low = selectMinPower(bands, opts);
+    if (low) return { ...low, selection: 'minPower' };
+    const fb = selectMaximin(bands, opts);
+    return fb ? { ...fb, selection: 'maximin-fallback', fallback: true } : null;
+  }
+  const best = selectMaximin(bands, opts);
+  return best ? { ...best, selection: 'maximin' } : null;
+}
+
 /** Small seeded PRNG (mulberry32) so Monte Carlo readouts are repeatable. */
 export function rng(seed) {
   let a = seed >>> 0;

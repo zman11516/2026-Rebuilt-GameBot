@@ -151,6 +151,11 @@ export function buildShotMap(config, mech, grid, configText = JSON.stringify(con
     totalCount: grid.points.length,
     rawGrid: raw,
   };
+  if ((config.selection.mode ?? 'maximin') !== 'maximin') {
+    // Which rule picked each valid shot (low-power passes fall back to maximin where nothing meets the floor).
+    map.selectionCounts = {};
+    for (const p of valid) map.selectionCounts[p.selection] = (map.selectionCounts[p.selection] ?? 0) + 1;
+  }
   if (config.kind !== 'hub' && config.feed.crossing) {
     // The robot picks between a "feed" and a "net feed" map by checking whether the line from the
     // turret to the target crosses these footprints (blue-alliance field coordinates, grown by the

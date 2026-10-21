@@ -4,7 +4,7 @@ import { makeAero } from './physics.mjs';
 import { angleForHoodRot, angleRange, speedRange } from './mechanism.mjs';
 import { simulateHub, simulateFeed, feedProfile } from './targets.mjs';
 import { sweepAngles, angleList } from './sweep.mjs';
-import { selectMaximin } from './select.mjs';
+import { selectShot } from './select.mjs';
 
 const DEG = Math.PI / 180;
 
@@ -57,13 +57,14 @@ export function solvePoint(ctx, config, mech, d, vr, profile) {
   }
   const shot = ctx.shotFor(d, vr, profile);
   const bands = sweepAngles(shot, ctx.angles, ctx.speed, config.selection.speedTol);
-  const best = selectMaximin(bands, {
+  const best = selectShot(bands, config.selection.mode ?? 'maximin', {
     sigmaSpeed: config.selection.sigmaSpeed,
     sigmaAngleDeg: config.selection.sigmaAngleDeg,
     angleMin: ctx.range.min,
     angleMax: ctx.range.max,
     speedMax: ctx.speed.max,
     speedBias: config.selection.speedBias,
+    minMarginSigma: config.selection.minMarginSigma ?? 2,
     fixedAngle: ctx.fixedAngle ?? undefined,
   });
   if (!best) {
@@ -100,6 +101,7 @@ export function solvePoint(ctx, config, mech, d, vr, profile) {
     speedMarginLow: best.speedMarginLow,
     speedMarginHigh: best.speedMarginHigh,
     score: best.score,
+    selection: best.selection,
     vtMax,
     bands,
   };

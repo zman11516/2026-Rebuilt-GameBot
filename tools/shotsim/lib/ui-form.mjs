@@ -6,6 +6,7 @@ const opt = (path, label, unit = '') => ({ path, label, unit, nullable: true });
 // Steps and sigmas must be > 0 (a zero step never ends the sweep; a zero sigma divides by zero).
 const pos = (path, label, unit = '') => ({ path, label, unit, positive: true });
 const bool = (path, label) => ({ path, label, bool: true });
+const choice = (path, label, options) => ({ path, label, options });
 
 export const FIELD_GROUPS = [
   {
@@ -68,6 +69,8 @@ export const FIELD_GROUPS = [
     title: 'Selection',
     on: 'config',
     fields: [
+      choice('selection.mode', 'rule', ['maximin', 'minPower']),
+      pos('selection.minMarginSigma', 'minPower margin floor (blank = 2)', 'σ'),
       pos('selection.sigmaSpeed', 'σ speed', 'm/s'),
       pos('selection.sigmaAngleDeg', 'σ angle', 'deg'),
       num('selection.speedBias', 'speed bias'),
@@ -122,9 +125,10 @@ export function buildForm(root, objects, onChange) {
     set.innerHTML = `<legend>${group.title}</legend>`;
     for (const field of group.fields) {
       const label = document.createElement('label');
-      const input = document.createElement('input');
+      const input = document.createElement(field.options ? 'select' : 'input');
       input.dataset.path = field.path;
-      if (field.bool) input.type = 'checkbox';
+      if (field.options) input.innerHTML = field.options.map((o) => `<option value="${o}">${o}</option>`).join('');
+      else if (field.bool) input.type = 'checkbox';
       else {
         input.type = 'number';
         input.step = 'any';
@@ -136,11 +140,12 @@ export function buildForm(root, objects, onChange) {
         const target = objects()[group.on];
         const blank = input.value.trim() === '';
         let value;
-        if (field.bool) value = input.checked;
+        if (field.options) value = input.value;
+        else if (field.bool) value = input.checked;
         else if (blank)
           value = field.nullable ? null : NaN; // Number('') would be 0
         else value = Number(input.value);
-        if (!field.bool && value !== null && (!Number.isFinite(value) || (field.positive && value <= 0))) {
+        if (!field.options && !field.bool && value !== null && (!Number.isFinite(value) || (field.positive && value <= 0))) {
           input.classList.add('bad');
           return;
         }
@@ -159,7 +164,8 @@ export function buildForm(root, objects, onChange) {
     for (const { group, field, input } of inputs) {
       if (group.kind !== undefined && group.kind !== objs.config.kind) continue;
       const v = getPath(objs[group.on], field.path);
-      if (field.bool) input.checked = !!v;
+      if (field.options) input.value = v ?? field.options[0];
+      else if (field.bool) input.checked = !!v;
       else input.value = v === null || v === undefined ? '' : String(v);
       input.classList.remove('bad');
     }

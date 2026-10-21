@@ -339,8 +339,15 @@ function runSingle() {
       (p.droppedBearings ? ` (${p.droppedBearings.length} hugging an obstacle with no shot left out)` : '') +
       '</div>'
     : '';
+  const rule =
+    p.selection === 'minPower'
+      ? `low power (slowest shot with every margin ≥ ${config.selection.minMarginSigma ?? 2}σ)`
+      : p.selection === 'maximin-fallback'
+        ? 'most robust (fallback: no low-power shot meets the margin floor here)'
+        : 'most robust (maximin)';
   out.innerHTML = `
     <div><b class="c-chosen">Optimal:</b> ${fx(p.angleDeg, 1)}° @ ${fx(p.speed)} m/s</div>
+    <div><b>Rule:</b> ${rule}</div>
     <div><b class="c-speed">Speed:</b> −${fx(p.speedMarginLow)}/+${fx(p.speedMarginHigh)} m/s</div>
     <div><b class="c-angle">Angle:</b> −${fx(p.angleMarginLow, 1)}°/+${fx(p.angleMarginHigh, 1)}°</div>
     <div><b>TOF:</b> ${fx(p.tof, 3)} s &nbsp; <b>Apex:</b> ${fx(p.apex)} m</div>

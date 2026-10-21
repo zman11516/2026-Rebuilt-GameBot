@@ -38,14 +38,16 @@
     "_source": "Landing: ball centre at floor contact within 0.75 m of the target (keeps 1.2 m from the guardrail, Tyler sim rule). Obstacles (blue frame, welded field): Game Manual 5.x + field drawings via Tyler Handel's rebuilt-sim-2026 and 6328 FieldConstants. Trench top 1.0224 m: VERIFY (frc-fire-control uses 1.346 m pillars). crossing.avoid = this map only covers passes whose line misses the hub and its net; netfeed.json covers the rest. hugDistance: a launch point whose line meets an obstacle this close (turret at the trench mouth) and that has no shot of its own is left out instead of invalidating its whole distance (the map's shot does not work from that spot). netfeed.json leaves it at 0, so a robot parked under the net never fires into it."
   },
   "selection": {
-    "mode": "maximin",
+    "mode": "minPower",
+    "minMarginSigma": 2.0,
     "sigmaSpeed": 0.2,
     "sigmaAngleDeg": 1.0,
     "speedBias": 0.0,
     "angleStepDeg": 0.5,
     "anglePadDeg": 3.0,
     "speedTol": 0.005,
-    "fixedHoodRot": null
+    "fixedHoodRot": null,
+    "_source": "Passes use minPower: the slowest flywheel shot whose speed and hood margins all stay >= minMarginSigma sigmas (2 sigma = 0.4 m/s and 2 deg), instead of the hub's most-robust maximin shot. Cuts flywheel energy per pass by roughly 10-50% (more at short range); the robot then feeds only within min(2 rps, half the 0.4 m/s margin) = +/-1.4 rps of target. Falls back to maximin where nothing meets the floor."
   },
   "grid": {
     "distance": { "min": 2.0, "max": 12.0, "step": 0.25 },

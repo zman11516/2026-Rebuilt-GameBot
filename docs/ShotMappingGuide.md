@@ -137,5 +137,5 @@ Logs are under `Shooter/SOTM/Map/*` (d, vr, vt, elevation, exit speed, hood rota
    * Error that changes with distance: change `SOTM/HoodOffsetDeg`.
    * Write the final values back into `configs/mechanism.json` (`theta0Deg` and `exitSpeedScale`) and re-run `generate`, so the next deploy starts at zero trims.
 4. **Moving check.** Drive toward and away from the hub at about 1 m/s, then sideways. Shots that trail the motion mean `SOTM/LatencySec` is too small. Check `Shooter/SOTM/Ready/*` to see which gate holds the feed.
-5. **Passing.** Hold driver X or operator right trigger. The robot picks the nearest pass target and uses the net-feed map when the line to the target crosses the hub net.
+5. **Passing.** Hold driver X or operator right trigger. The robot picks the nearest pass target and uses the net-feed map when the line to the target crosses the hub net. Pass maps are built for low power: mostly the flattest hood (0.6 rot) and the slowest flywheel speed that keeps 2σ of margin, so expect lower, faster-arriving passes than the old pass table, and a feed gate of about ±1.4 rps.
 6. **Redo steps 2 and 3 after any shooter hardware change** (wheel, compression, belts, hood).

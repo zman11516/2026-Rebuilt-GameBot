@@ -79,6 +79,7 @@ function generate(opt) {
           `speed rms ${s.speed.rms} m/s (max ${s.speed.maxAbs}), tof rms ${s.tof.rms} s, vt global ${map.tangentialLimit.global} m/s ` +
           `[${((Date.now() - t0) / 1000).toFixed(1)} s] -> ${path.relative(ROOT, file)}`,
       );
+      if (map.selectionCounts) console.log(`  selection: ${JSON.stringify(map.selectionCounts)}`);
     }
   }
   if (!opt.only || opt.only === 'hub') {

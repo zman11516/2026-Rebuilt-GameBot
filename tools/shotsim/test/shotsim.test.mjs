@@ -6,9 +6,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { makeAero, integrate, trajectory } from '../lib/physics.mjs';
-import { simulateHub, feedProfile, crossesBox, obstacleBoxes } from '../lib/targets.mjs';
+import { simulateHub, simulateFeed, feedProfile, crossesBox, obstacleBoxes } from '../lib/targets.mjs';
 import { sweepAngles, angleList } from '../lib/sweep.mjs';
-import { selectMaximin } from '../lib/select.mjs';
+import { selectMaximin, selectMinPower, selectShot } from '../lib/select.mjs';
 import { basisTerms, fitPoly, evalPoly } from '../lib/fit.mjs';
 import { compensate, solve, poseExp } from '../lib/sotm.mjs';
 import { evalMap } from '../lib/mapeval.mjs';
@@ -83,6 +83,53 @@ test('maximin picks the widest point of a synthetic band', () => {
   near(best.speed, 8, 1e-12);
   near(best.speedMarginLow, 0.6, 1e-12);
   assert.ok(best.angleMarginLow >= 9.5 && best.angleMarginHigh >= 9.5, 'all angles contain 8 m/s');
+});
+
+test('minPower picks the slowest shot that keeps every margin above the floor', () => {
+  // Window lower edge falls toward flatter angles (slower), upper edge stays 1 m/s above it.
+  const bands = angleList(50, 70, 1).map((a) => ({ angle: a, sLow: 6 + 0.05 * (a - 50), sHigh: 7 + 0.05 * (a - 50), valid: true }));
+  const opts = { sigmaSpeed: 0.1, sigmaAngleDeg: 1, angleMin: 52, angleMax: 70, minMarginSigma: 2 };
+  const low = selectMinPower(bands, opts);
+  assert.equal(low.angle, 52, 'flattest angle in range is the slowest');
+  near(low.speed, bands[2].sLow + 0.2, 1e-12, 'speed sits k sigma above the lower edge');
+  assert.ok(low.speedMarginLow >= 0.2 - 1e-12 && low.speedMarginHigh >= 0.2 - 1e-12);
+  assert.ok(low.angleMarginLow >= 2 && low.angleMarginHigh >= 2);
+  assert.ok(low.speed < selectMaximin(bands, opts).speed);
+  // A floor nothing can meet falls back to maximin.
+  assert.equal(selectMinPower(bands, { ...opts, minMarginSigma: 10 }), null);
+  const fb = selectShot(bands, 'minPower', { ...opts, minMarginSigma: 10 });
+  assert.equal(fb.selection, 'maximin-fallback');
+  assert.equal(fb.speed, selectMaximin(bands, opts).speed);
+});
+
+test('low-power feed shots are slower than maximin, keep 2 sigma margins and still land', () => {
+  const feed = expandConfig(read('configs/feed.json'))[0];
+  assert.equal(feed.selection.mode, 'minPower');
+  const ctx = makeContext(feed, mech);
+  const k = feed.selection.minMarginSigma;
+  for (const d of [4, 6, 9]) {
+    const profile = feedProfile(feed.feed, feed.target, d, ctx.aero.r);
+    const low = solvePoint(ctx, feed, mech, d, 0, profile);
+    const robust = solvePoint(ctx, { ...feed, selection: { ...feed.selection, mode: 'maximin' } }, mech, d, 0, profile);
+    assert.equal(low.selection, 'minPower', `${d} m`);
+    assert.ok(low.speed < robust.speed, `${d} m: ${low.speed} < ${robust.speed}`);
+    for (const m of ['speedMarginLow', 'speedMarginHigh']) assert.ok(low[m] >= k * feed.selection.sigmaSpeed - 1e-9, `${d} m ${m}`);
+    for (const m of ['angleMarginLow', 'angleMarginHigh']) assert.ok(low[m] >= k * feed.selection.sigmaAngleDeg - 1e-9, `${d} m ${m}`);
+    assert.ok(simulateFeed(ctx.aero, mech, feed.feed, d, 0, low.angleDeg, low.speed, profile.intervals).ok, `${d} m lands`);
+  }
+});
+
+test('every shot in a small low-power feed grid lands in simulation', () => {
+  const feed = expandConfig(read('configs/netfeed.json'))[1];
+  const small = { ...feed, grid: { distance: { min: 5, max: 11, step: 2 }, radialVelocity: { min: -1, max: 1, step: 1 } } };
+  const grid = buildGrid(small, mech);
+  const map = buildShotMap(small, mech, grid);
+  assert.ok(map.selectionCounts.minPower > 0);
+  const ctx = makeContext(small, mech);
+  for (const p of grid.points.filter((q) => q.valid)) {
+    const profile = feedProfile(small.feed, small.target, p.d, ctx.aero.r);
+    assert.ok(simulateFeed(ctx.aero, mech, small.feed, p.d, p.vr, p.angleDeg, p.speed, profile.intervals).ok, `${p.d},${p.vr}`);
+  }
 });
 
 test('polynomial fit recovers known coefficients', () => {

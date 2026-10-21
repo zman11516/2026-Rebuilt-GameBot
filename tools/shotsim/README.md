@@ -101,6 +101,17 @@ divided by its expected error (`sigmaSpeed`, `sigmaAngleDeg`) and the shot with 
 travel so margins near the hood limits come from the physics. The UI's P(score) is a 256-shot Monte Carlo
 cross-check with the same sigmas.
 
+### Low-power passes (minPower)
+
+Pass maps (`feed.json`, `netfeed.json`) set `selection.mode` to `minPower`: the slowest shot whose four margins
+all stay at least `minMarginSigma` sigmas (2σ = 0.4 m/s and 2°). Speed sits 2σ above the window's lower edge
+instead of mid-window, which in practice means the flattest hood (0.6 rot) and a slower flywheel. Against
+maximin that cuts flywheel energy per pass by about 40% at 4 m, 30% at 6 m and 13% at 11 m (9-14% for net
+feed), and passes land 0.15-0.45 s sooner. Where no shot meets the floor (net feed close in, around 5 m) the
+point falls back to maximin; `selectionCounts` in the map records how many of each. On the robot the feed gate
+follows the smaller margin: the flywheel must be within min(2 rps, half of 0.4 m/s) = about ±1.4 rps. The hub
+keeps maximin, where accuracy matters more than power. This plays the role of 4414's configurable speed bias.
+
 ### Map export
 
 Each grid point stores angle, speed, TOF and the four margins (plus vtMax, apex, score). The seven outputs are
